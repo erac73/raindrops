@@ -148,7 +148,7 @@ public class WitnessService {
 
     public StoreResult storeData(byte[] data, int n, int k, int ttlDays) {
         if (storageUrls.isEmpty()) {
-            return new StoreResult(false, "No storage nodes configured", null, null);
+            return new StoreResult(false, null, null);
         }
 
         try {
