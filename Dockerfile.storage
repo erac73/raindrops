@@ -33,11 +33,11 @@ RUN groupadd -r raindrops && useradd -r -g raindrops raindrops
 WORKDIR /app
 
 COPY --from=build /app/storage/target/*.jar app.jar
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-RUN chown -R raindrops:raindrops /app
-
-USER raindrops
+RUN chown -R raindrops:raindrops /app /entrypoint.sh
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/entrypoint.sh"]
