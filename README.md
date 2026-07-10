@@ -1,9 +1,25 @@
-# Rain Drops
+<p align="center">
+  <img src="assets/raindrops-logo.svg" alt="Rain Drops Logo" width="200"/>
+</p>
 
-> *"A raindrop carries no information about the storm."*
+<h1 align="center">🌧️ Rain Drops</h1>
 
-**Author:** Edwar Antonio Ramírez Castillo
-**Status:** Phase 1 — Cryptographic Core  &nbsp;|&nbsp; Phase 2 — Storage Node ->
+<p align="center">
+  <em>"A raindrop carries no information about the storm."</em>
+</p>
+
+<p align="center">
+  <strong>Author:</strong> Edwar Antonio Ramírez Castillo &nbsp;|&nbsp;
+  <strong>Status:</strong> Phase 1 — Cryptographic Core ✅ &nbsp;|&nbsp;
+  Phase 2 — Storage Node 🔜
+</p>
+
+<p align="center">
+  <a href="README_ES.md"><img src="https://img.shields.io/badge/Español-README-blue?style=flat-square" alt="Español"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"/></a>
+  <img src="https://img.shields.io/badge/Java-17%2B-orange?style=flat-square" alt="Java 17+"/>
+  <img src="https://img.shields.io/badge/Python-3.9%2B-blue?style=flat-square" alt="Python 3.9+"/>
+</p>
 
 ---
 
@@ -103,19 +119,30 @@ Erase S and drops from memory → return D
 ## Project Structure
 
 ```
-raindrops/
-├── pom.xml
-└── src/
-    ├── main/java/io/raindrops/core/
-    │   ├── ShamirSSS.java        ← SSS over GF(2^521-1)
-    │   ├── Drop.java             ← immutable drop structure
-    │   ├── DropFactory.java      ← creation + HMAC verification
-    │   ├── HybridScheme.java     ← AES-256-GCM
-    │   └── RainDropsCore.java    ← DROP / RECONSTRUCT facade
-    └── test/java/io/raindrops/core/
-        ├── ShamirSSSTest.java    ← 12 tests
-        ├── HybridSchemeTest.java ← 5 tests
-        └── RainDropsCoreTest.java← 12 tests
+raindrops-fase1/
+├── README.md               ← Documentation (English)
+├── README_ES.md            ← Documentation (Spanish)
+├── LICENSE                 ← MIT License
+├── .gitignore
+├── assets/
+│   └── raindrops-logo.svg  ← Project logo
+│
+└── raindrops/
+    ├── pom.xml
+    ├── raindrops.py         ← Python implementation + node simulator
+    └── src/
+        ├── main/java/io/raindrops/core/
+        │   ├── ShamirSSS.java        ← SSS over GF(2^521-1)
+        │   ├── Drop.java             ← immutable drop structure
+        │   ├── DropFactory.java      ← creation + HMAC verification
+        │   ├── HybridScheme.java     ← AES-256-GCM
+        │   └── RainDropsCore.java    ← DROP / RECONSTRUCT facade
+        ├── main/java/io/raindrops/demo/
+        │   └── RainDropsDemo.java    ← Interactive CLI demo
+        └── test/java/io/raindrops/core/
+            ├── ShamirSSSTest.java    ← 12 tests
+            ├── HybridSchemeTest.java ← 5 tests
+            └── RainDropsCoreTest.java← 12 tests
 ```
 
 ---
@@ -130,16 +157,30 @@ raindrops/
 ### Build and test
 
 ```bash
-git clone https://github.com/tuusuario/rain-drops.git
-cd rain-drops
+git clone https://github.com/erac73/raindrops-fase1.git
+cd raindrops-fase1/raindrops
 mvn test
 ```
 
 Expected output:
 
 ```
-Tests run: 29, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 41, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
+```
+
+### Run interactive demo (Java)
+
+```bash
+cd raindrops-fase1/raindrops
+mvn compile exec:java -Dexec.mainClass="io.raindrops.demo.RainDropsDemo"
+```
+
+### Run Python implementation
+
+```bash
+cd raindrops-fase1/raindrops
+python raindrops.py
 ```
 
 ### Quick example
@@ -174,10 +215,10 @@ System.out.println(new String(recovered));
 
 | Test class | Tests | What is verified |
 |---|---|---|
-| `ShamirSSSTest` | 12 | Mathematical correctness, perfect secrecy, byte conversion, parameter validation |
-| `HybridSchemeTest` | 5 | Encrypt/decrypt round-trip, IND property, tamper detection, key zeroization |
-| `RainDropsCoreTest` | 12 | Full flow, N-K resilience, integrity, TTL, cross-rain independence |
-| **Total** | **29** | — |
+| `ShamirSSSTest` | 21 | Mathematical correctness, perfect secrecy, byte conversion, parameter validation |
+| `HybridSchemeTest` | 6 | Encrypt/decrypt round-trip, IND property, tamper detection, key zeroization |
+| `RainDropsCoreTest` | 14 | Full flow, N-K resilience, integrity, TTL, cross-rain independence |
+| **Total** | **41** | — |
 
 Notable tests:
 

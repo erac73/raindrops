@@ -157,7 +157,7 @@ class ShamirSSSTest {
             for (int trial = 0; trial < 100; trial++) {
                 BigInteger secret = new BigInteger(200, RNG).mod(ShamirSSS.PRIME);
                 List<BigInteger[]> shares = ShamirSSS.split(secret, 5, 3);
-                BigInteger guess = ShamirSSS.combine(List.of(shares.get(0)));
+                BigInteger guess = ShamirSSS.combine(Collections.singletonList(shares.get(0)));
                 if (guess.equals(secret)) falsePosCount++;
             }
             // Con 100 trials, esperamos 0 colisiones (probabilidad ≈ 100/2^521)
