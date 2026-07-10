@@ -2,7 +2,7 @@
   <img src="assets/raindrops-logo.svg" alt="Rain Drops Logo" width="200"/>
 </p>
 
-<h1 align="center">🌧️ Rain Drops</h1>
+<h1 align="center">Rain Drops</h1>
 
 <p align="center">
   <em>"A raindrop carries no information about the storm."</em>
@@ -10,8 +10,8 @@
 
 <p align="center">
   <strong>Author:</strong> Edwar Antonio Ramírez Castillo &nbsp;|&nbsp;
-  <strong>Status:</strong> Phase 1 — Cryptographic Core ✅ &nbsp;|&nbsp;
-  Phase 2 — Storage Node 🔜
+  <strong>Status:</strong> Phase 1 — Cryptographic Core <img src="https://img.shields.io/badge/status-done-success?style=flat-square" alt="Done"/>&nbsp;|&nbsp;
+  Phase 2 — Storage Node <img src="https://img.shields.io/badge/status-next-yellow?style=flat-square" alt="Next"/>
 </p>
 
 <p align="center">
@@ -30,6 +30,16 @@ Rain Drops is a distributed information storage model based on threshold cryptog
 The metaphor is precise: just as a single raindrop contains no information about the storm, each drop is, in isolation, indistinguishable from random noise. Only when **K of N drops** are combined does the data emerge.
 
 This is not encryption layered on top of storage. **Confidentiality is a structural property of the model.**
+
+---
+
+## En Español
+
+Rain Drops es un modelo de almacenamiento distribuido basado en **criptografía de umbral**. Los datos se fragmentan en micro-unidades llamadas **gotas (drops)** que individualmente no tienen significado. Solo cuando se combinan **K de N gotas** se puede reconstruir el dato original.
+
+Cada gota es indistinguible de ruido aleatorio. La confidencialidad **no es una capa adicional** — es una propiedad estructural del modelo.
+
+> Documentación completa en español: [`README_ES.md`](README_ES.md)
 
 ---
 
@@ -232,13 +242,13 @@ Notable tests:
 
 | Phase | Component | Status |
 |---|---|---|
-| **1** | Cryptographic core (SSS, AES-GCM, HMAC, drops) | ✅ Done |
-| **2** | Storage Node — REST API (Spring Boot) + SQLite + TTL Reaper | 🔜 Next |
-| **3** | Rain Map (AES-GCM sealed) + Witness Node + quorum protocol | 📋 Planned |
-| **4** | Gossip Protocol — autonomous node discovery + reputation | 📋 Planned |
-| **5** | Client SDK — high-level API + declarative YAML policies | 📋 Planned |
-| **6** | Oracles — Time, Identity, Multisig, HTTP, Composite | 📋 Planned |
-| **7** | Proof of Rain — zero-knowledge proofs over fragmented data | 📋 Planned |
+| **1** | Cryptographic core (SSS, AES-GCM, HMAC, drops) | <img src="https://img.shields.io/badge/-done-success?style=flat-square" alt="Done"/> |
+| **2** | Storage Node — REST API (Spring Boot) + SQLite + TTL Reaper | <img src="https://img.shields.io/badge/-next-yellow?style=flat-square" alt="Next"/> |
+| **3** | Rain Map (AES-GCM sealed) + Witness Node + quorum protocol | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
+| **4** | Gossip Protocol — autonomous node discovery + reputation | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
+| **5** | Client SDK — high-level API + declarative YAML policies | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
+| **6** | Oracles — Time, Identity, Multisig, HTTP, Composite | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
+| **7** | Proof of Rain — zero-knowledge proofs over fragmented data | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
 
 ---
 

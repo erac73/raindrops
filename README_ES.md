@@ -1,9 +1,9 @@
-# 🌧️ Rain Drops
+# Rain Drops
 
 > *"Una gota de lluvia no contiene información sobre la tormenta."*
 
 **Autor:** Edwar Antonio Ramírez Castillo  
-**Estado:** Fase 1 — Núcleo Criptográfico ✅ | Fase 2 — Nodo de Almacenamiento 🔜
+**Estado:** Fase 1 — Núcleo Criptográfico <img src="https://img.shields.io/badge/status-done-success?style=flat-square" alt="Completado"/> | Fase 2 — Nodo de Almacenamiento <img src="https://img.shields.io/badge/status-next-yellow?style=flat-square" alt="Siguiente"/>
 
 ---
 
@@ -224,13 +224,13 @@ Tests notables:
 
 | Fase | Componente | Estado |
 |---|---|---|
-| **1** | Núcleo criptográfico (SSS, AES-GCM, HMAC, gotas) | ✅ Completo |
-| **2** | Nodo de Almacenamiento — API REST (Spring Boot) + SQLite + TTL Reaper | 🔜 Siguiente |
-| **3** | Mapa de Lluvia (Rain Map sellado con AES-GCM) + Nodo Testigo + protocolo de quórum | 📋 Planificado |
-| **4** | Protocolo Gossip — descubrimiento autónomo de nodos + reputación | 📋 Planificado |
-| **5** | SDK Cliente — API de alto nivel + políticas declarativas YAML | 📋 Planificado |
-| **6** | Oráculos — Tiempo, Identidad, Multifirma, HTTP, Compuesto | 📋 Planificado |
-| **7** | Prueba de Lluvia (Proof of Rain) — pruebas de conocimiento cero sobre datos fragmentados | 📋 Planificado |
+| **1** | Núcleo criptográfico (SSS, AES-GCM, HMAC, gotas) | <img src="https://img.shields.io/badge/-done-success?style=flat-square" alt="Completado"/> |
+| **2** | Nodo de Almacenamiento — API REST (Spring Boot) + SQLite + TTL Reaper | <img src="https://img.shields.io/badge/-next-yellow?style=flat-square" alt="Siguiente"/> |
+| **3** | Mapa de Lluvia (Rain Map sellado con AES-GCM) + Nodo Testigo + protocolo de quórum | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planificado"/> |
+| **4** | Protocolo Gossip — descubrimiento autónomo de nodos + reputación | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planificado"/> |
+| **5** | SDK Cliente — API de alto nivel + políticas declarativas YAML | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planificado"/> |
+| **6** | Oráculos — Tiempo, Identidad, Multifirma, HTTP, Compuesto | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planificado"/> |
+| **7** | Prueba de Lluvia (Proof of Rain) — pruebas de conocimiento cero sobre datos fragmentados | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planificado"/> |
 
 ---
 
