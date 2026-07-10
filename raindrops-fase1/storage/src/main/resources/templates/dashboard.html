@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rain Drops - Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; background: #0b0e14; color: #e0e0e0; padding: 2rem; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #58a6ff; }
+        .subtitle { color: #8b949e; margin-bottom: 2rem; }
+        .cards { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; min-width: 200px; flex: 1; }
+        .card h2 { font-size: 0.85rem; text-transform: uppercase; color: #8b949e; margin-bottom: 0.5rem; }
+        .card .value { font-size: 2rem; font-weight: bold; color: #58a6ff; }
+        .card .value.green { color: #3fb950; }
+        .card .value.yellow { color: #d29922; }
+        ul { list-style: none; margin-top: 0.5rem; }
+        li { padding: 0.25rem 0; color: #8b949e; }
+        li::before { content: "> "; color: #58a6ff; }
+        .footer { margin-top: 2rem; color: #484f58; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <h1>Rain Drops</h1>
+    <p class="subtitle">Distributed Cryptographic Storage &mdash; Node <strong th:text="${nodeId}">keeper-1</strong></p>
+
+    <div class="cards">
+        <div class="card">
+            <h2>Node</h2>
+            <div class="value green" th:text="${nodeId}">keeper-1</div>
+        </div>
+
+        <div class="card">
+            <h2>Drops Stored</h2>
+            <div class="value" th:text="${dropCount}">0</div>
+        </div>
+
+        <div class="card">
+            <h2>Rain Maps</h2>
+            <div class="value yellow" th:text="${rainMapCount}">0</div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 1rem; max-width: 600px;">
+        <h2>Peers</h2>
+        <ul>
+            <li th:each="peer : ${peers}" th:text="${peer}">peer-url</li>
+            <li th:if="${#lists.isEmpty(peers)}">No peers configured</li>
+        </ul>
+    </div>
+
+    <div class="card" style="margin-top: 1rem; max-width: 600px;">
+        <h2>API Endpoints</h2>
+        <ul>
+            <li><a href="/swagger-ui.html" style="color:#58a6ff;">Swagger UI</a></li>
+            <li><a href="/actuator/health" style="color:#58a6ff;">Health</a></li>
+            <li><a href="/actuator/prometheus" style="color:#58a6ff;">Prometheus Metrics</a></li>
+            <li><a href="/h2-console" style="color:#58a6ff;">H2 Console</a></li>
+            <li><a href="/peers" style="color:#58a6ff;">Peers JSON</a></li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        Rain Drops Storage v0.1.0 - Built with Spring Boot
+    </div>
+</body>
+</html>
