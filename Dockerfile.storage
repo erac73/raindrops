@@ -10,16 +10,17 @@ WORKDIR /app
 COPY raindrops-fase1/raindrops/pom.xml raindrops/pom.xml
 COPY raindrops-fase1/storage/pom.xml   storage/pom.xml
 
-# Resolve dependencies (skip Javadoc checkstyle to speed up)
-RUN mvn -pl storage -am dependency:go-offline -B -q 2>/dev/null || true
+# Resolve dependencies (independent POMs, no reactor)
+RUN mvn -f raindrops/pom.xml dependency:go-offline -B -q 2>/dev/null || true
+RUN mvn -f storage/pom.xml   dependency:go-offline -B -q 2>/dev/null || true
 
 # Copy source code
 COPY raindrops-fase1/raindrops/src raindrops/src
 COPY raindrops-fase1/storage/src   storage/src
 
 # Install raindrops-core to local repo, then package storage
-RUN mvn -pl raindrops install -DskipTests -B -q && \
-    mvn -pl storage    package  -DskipTests -B -q
+RUN mvn -f raindrops/pom.xml install -DskipTests -B -q
+RUN mvn -f storage/pom.xml  package  -DskipTests -B -q
 
 # ─── Stage 2: Runtime ────────────────────────────────────────────────
 FROM eclipse-temurin:17-jre
