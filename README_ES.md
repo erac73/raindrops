@@ -42,6 +42,8 @@ Todos los nodos exponen:
 - Métricas Prometheus en `/actuator/prometheus`
 - Health en `/health`
 
+📖 **Documentación completa:** [Guía de Arquitectura](docs/ARCHITECTURE.md) · [Referencia API](docs/API.md) · [Guía de Contribución](CONTRIBUTING.md)
+
 ---
 
 ## Novedades de Fase 3

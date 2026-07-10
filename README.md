@@ -61,6 +61,8 @@ All nodes expose:
 - Prometheus metrics at `/actuator/prometheus`
 - Health at `/health`
 
+📖 **Full documentation:** [Architecture Guide](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Contributing Guide](CONTRIBUTING.md)
+
 ---
 
 ## Core Concepts
