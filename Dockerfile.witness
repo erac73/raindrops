@@ -1,0 +1,37 @@
+FROM maven:3.9-eclipse-temurin-17 AS build
+
+LABEL maintainer="Rain Drops Team <team@raindrops.io>"
+LABEL version="0.1.0"
+
+WORKDIR /app
+
+COPY raindrops-fase1/raindrops/pom.xml raindrops/pom.xml
+COPY raindrops-fase1/witness/pom.xml   witness/pom.xml
+
+RUN mvn -f raindrops/pom.xml dependency:go-offline -B -q 2>/dev/null || true
+RUN mvn -f witness/pom.xml   dependency:go-offline -B -q 2>/dev/null || true
+
+COPY raindrops-fase1/raindrops/src raindrops/src
+COPY raindrops-fase1/witness/src   witness/src
+
+RUN mvn -f raindrops/pom.xml install -DskipTests -B -q
+RUN mvn -f witness/pom.xml  package  -DskipTests -B -q
+
+FROM eclipse-temurin:17-jre
+
+LABEL maintainer="Rain Drops Team <team@raindrops.io>"
+LABEL version="0.1.0"
+
+RUN groupadd -r raindrops && useradd -r -g raindrops raindrops
+
+WORKDIR /app
+
+COPY --from=build /app/witness/target/*.jar app.jar
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+RUN chown -R raindrops:raindrops /app /entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint.sh"]

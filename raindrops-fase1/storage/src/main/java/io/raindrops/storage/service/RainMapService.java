@@ -4,6 +4,7 @@ import io.raindrops.core.Drop;
 import io.raindrops.core.DropSerializer;
 import io.raindrops.core.RainDropsCore;
 import io.raindrops.core.RainMap;
+import io.raindrops.storage.config.PeerConfig;
 import io.raindrops.storage.model.RainMapEntity;
 import io.raindrops.storage.repository.RainMapRepository;
 import org.slf4j.Logger;
@@ -23,11 +24,14 @@ public class RainMapService {
     private static final Logger log = LoggerFactory.getLogger(RainMapService.class);
 
     private final RainMapRepository rainMapRepository;
+    private final ReplicationService replicationService;
     private final String nodeId;
 
     public RainMapService(RainMapRepository rainMapRepository,
+                          ReplicationService replicationService,
                           @Value("${NODE_ID:storage-node}") String nodeId) {
         this.rainMapRepository = rainMapRepository;
+        this.replicationService = replicationService;
         this.nodeId = nodeId;
     }
 
@@ -46,6 +50,9 @@ public class RainMapService {
         entity.setCreatedAt(LocalDateTime.now());
         rainMapRepository.save(entity);
         log.info("Stored RainMap {} (n={}, k={})", rainMapId, n, k);
+
+        replicationService.replicateRainMap(rainMapId, encryptedPayload, n, k, ciphertextHex);
+
         return rainMapId;
     }
 

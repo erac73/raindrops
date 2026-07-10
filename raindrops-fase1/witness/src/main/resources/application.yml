@@ -1,0 +1,22 @@
+server:
+  port: ${WITNESS_PORT:8080}
+
+storage:
+  urls: ${STORAGE_URLS:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    io.raindrops: INFO
+    org.springframework: WARN

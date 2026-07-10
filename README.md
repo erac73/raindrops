@@ -10,22 +10,21 @@
 
 <p align="center">
   <strong>Author:</strong> Edwar Antonio Ramírez Castillo &nbsp;|&nbsp;
-  <strong>Status:</strong> Phase 1 — Cryptographic Core <img src="https://img.shields.io/badge/status-done-success?style=flat-square" alt="Done"/>&nbsp;|&nbsp;
-  Phase 2 — Storage Node <img src="https://img.shields.io/badge/status-next-yellow?style=flat-square" alt="Next"/>
+  <strong>Status:</strong> Fase 3 — Witness Node <img src="https://img.shields.io/badge/status-alpha-yellow?style=flat-square" alt="Alpha"/>
 </p>
 
 <p align="center">
   <a href="README_ES.md"><img src="https://img.shields.io/badge/Español-README-blue?style=flat-square" alt="Español"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"/></a>
   <img src="https://img.shields.io/badge/Java-17%2B-orange?style=flat-square" alt="Java 17+"/>
-  <img src="https://img.shields.io/badge/Python-3.9%2B-blue?style=flat-square" alt="Python 3.9+"/>
+  <img src="https://img.shields.io/badge/Docker-multi--arch-blue?style=flat-square" alt="Docker multi-arch"/>
 </p>
 
 ---
 
 ## What is Rain Drops?
 
-Rain Drops is a distributed information storage model based on threshold cryptography. Data is fragmented into cryptographic micro-units — called **drops** — that carry no individual meaning. The original data can only be reconstituted when a sufficient number of drops converge under verified conditions.
+Rain Drops is a **distributed information storage model** based on **threshold cryptography**. Data is fragmented into cryptographic micro-units — called **drops** — that carry no individual meaning. The original data can only be reconstituted when a sufficient number of drops converge under verified conditions.
 
 The metaphor is precise: just as a single raindrop contains no information about the storm, each drop is, in isolation, indistinguishable from random noise. Only when **K of N drops** are combined does the data emerge.
 
@@ -33,13 +32,34 @@ This is not encryption layered on top of storage. **Confidentiality is a structu
 
 ---
 
-## En Español
+## Architecture Overview
 
-Rain Drops es un modelo de almacenamiento distribuido basado en **criptografía de umbral**. Los datos se fragmentan en micro-unidades llamadas **gotas (drops)** que individualmente no tienen significado. Solo cuando se combinan **K de N gotas** se puede reconstruir el dato original.
+```
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│   RainClient│────▶│  Witness Node│────▶│ Storage Node │
+│   (SDK)     │     │  (verifier)  │     │   keeper-1   │
+└─────────────┘     │              │     └──────────────┘
+                    │  /witness/   │     ┌──────────────┐
+                    │  store       │────▶│ Storage Node │
+                    │  /witness/   │     │   keeper-2   │
+                    │  reconstruct │     └──────────────┘
+                    │  /witness/   │     ┌──────────────┐
+                    │  verify      │────▶│ Storage Node │
+                    └──────────────┘     │   keeper-3   │
+                                         └──────────────┘
+```
 
-Cada gota es indistinguible de ruido aleatorio. La confidencialidad **no es una capa adicional** — es una propiedad estructural del modelo.
+| Component | Description |
+|---|---|
+| **RainClient SDK** | Java library for DROP/RECONSTRUCT operations. Coordinates with storage nodes or witness. |
+| **Witness Node** | Stateless coordinator that verifies drop integrity (MAC, TTL) before RECONSTRUCT. Prevents malicious nodes from injecting fake data. |
+| **Storage Node** | Spring Boot service storing drops and RainMaps. Replicates to peers. TTL-based reaper. |
 
-> Documentación completa en español: [`README_ES.md`](README_ES.md)
+All nodes expose:
+- Swagger UI at `/swagger-ui.html`
+- OpenAPI spec at `/api-docs`
+- Prometheus metrics at `/actuator/prometheus`
+- Health at `/health`
 
 ---
 
@@ -49,10 +69,9 @@ Cada gota es indistinguible de ruido aleatorio. La confidencialidad **no es una 
 |---|---|
 | **Drop** | Cryptographic micro-unit: `(id, x, y, mac, ttl)`. Individually meaningless. |
 | **Rain** | A set of N drops generated from one datum, requiring K to reconstruct. |
-| **Rain Map** | Encrypted index mapping drop IDs to storage node URLs. |
+| **Rain Map** | AES-GCM sealed index mapping drop IDs to storage node URLs. |
 | **Threshold K** | Minimum drops needed to reconstruct. With K-1 drops: zero information. |
-| **Witness Node** | Stateless coordinator that orchestrates reconstruction. |
-| **Oracle** | External service that signs access conditions (time, identity, multisig). |
+| **Witness Node** | Stateless coordinator that verifies drop integrity before reconstruction. |
 
 ---
 
@@ -60,69 +79,11 @@ Cada gota es indistinguible de ruido aleatorio. La confidencialidad **no es una 
 
 | Property | Guarantee |
 |---|---|
-| **Perfect secrecy** | With fewer than K drops, the secret is information-theoretically hidden — not just computationally. |
+| **Perfect secrecy** | With fewer than K drops, the secret is information-theoretically hidden. |
 | **IND-CCA2** | Hybrid scheme (AES-256-GCM + SSS) is secure against chosen-ciphertext attacks. |
-| **Integrity** | Each drop carries an HMAC-SHA256 MAC. Tampering is detected with probability 1 − 2⁻²⁵⁶. |
-| **Blind identity** | Drop IDs are `HMAC(nonce, masterKey)` — no visible correlation to the data or to each other. |
-| **Temporal expiry** | Drops carry a TTL. Expired drops are irrecoverable by design. |
-
-These properties are formally proved in the theoretical paper (see [Publications](#publications)).
-
----
-
-## Architecture
-
-```
-RainDropsCore          ← single entry point: DROP / RECONSTRUCT
-    │
-    ├── ShamirSSS      ← (K,N)-threshold SSS over GF(2^521-1)
-    │       └── Lagrange interpolation, Horner evaluation
-    │
-    ├── HybridScheme   ← AES-256-GCM (Bouncy Castle 1.77)
-    │
-    └── DropFactory    ← HMAC-SHA256, blind identity, TTL
-            └── Drop   ← immutable data structure
-```
-
-### How DROP works
-
-```
-Data D
-  │
-  ├─ if |D| ≤ 65 bytes ──→ S = D (direct mode)
-  │
-  └─ if |D| > 65 bytes ──→ k_AES = random 256-bit key
-                            C = AES-256-GCM(k_AES, D)   ← store anywhere
-                            S = k_AES                    ← fragment with SSS
-  │
-  ▼
-f(x) = S + a₁x + ... + a_{K-1}x^{K-1}  mod p     ← random polynomial
-  │
-  ├── drop_1 = (HMAC(nonce₁, mk), 1, f(1), MAC, ttl)  → Node 1
-  ├── drop_2 = (HMAC(nonce₂, mk), 2, f(2), MAC, ttl)  → Node 2
-  │   ...
-  └── drop_N = (HMAC(nonceN, mk), N, f(N), MAC, ttl)  → Node N
-
-Returns: (RainMap sealed with AES-GCM, masterKey)
-```
-
-### How RECONSTRUCT works
-
-```
-Unseal Rain Map → verify access policy → issue quorum token
-  │
-  ▼
-Collect K drops in parallel → verify each MAC → verify TTL
-  │
-  ▼
-Lagrange interpolation: S = Σᵢ yᵢ · Lᵢ(0)  mod p
-  │
-  ├─ direct mode ──→ D = S
-  └─ hybrid mode ──→ D = AES-256-GCM-Decrypt(S, C)
-  │
-  ▼
-Erase S and drops from memory → return D
-```
+| **Integrity** | Each drop carries an HMAC-SHA256 MAC. Witness Node verifies all drops before RECONSTRUCT. |
+| **Blind identity** | Drop IDs are `HMAC(nonce, masterKey)` — no visible correlation. |
+| **Temporal expiry** | Drops carry a TTL. Expired drops are irrecoverable. |
 
 ---
 
@@ -130,29 +91,25 @@ Erase S and drops from memory → return D
 
 ```
 raindrops-fase1/
-├── README.md               ← Documentation (English)
-├── README_ES.md            ← Documentation (Spanish)
-├── LICENSE                 ← MIT License
-├── .gitignore
-├── assets/
-│   └── raindrops-logo.svg  ← Project logo
-│
-└── raindrops/
-    ├── pom.xml
-    ├── raindrops.py         ← Python implementation + node simulator
-    └── src/
-        ├── main/java/io/raindrops/core/
-        │   ├── ShamirSSS.java        ← SSS over GF(2^521-1)
-        │   ├── Drop.java             ← immutable drop structure
-        │   ├── DropFactory.java      ← creation + HMAC verification
-        │   ├── HybridScheme.java     ← AES-256-GCM
-        │   └── RainDropsCore.java    ← DROP / RECONSTRUCT facade
-        ├── main/java/io/raindrops/demo/
-        │   └── RainDropsDemo.java    ← Interactive CLI demo
-        └── test/java/io/raindrops/core/
-            ├── ShamirSSSTest.java    ← 12 tests
-            ├── HybridSchemeTest.java ← 5 tests
-            └── RainDropsCoreTest.java← 12 tests
+├── raindrops/          ← Core crypto module (SSS, AES-GCM, HMAC, RainClient SDK)
+│   └── src/main/java/io/raindrops/
+│       ├── core/       ← ShamirSSS, Drop, DropFactory, HybridScheme, RainDropsCore
+│       └── client/     ← RainClient SDK
+├── storage/            ← Storage Node (Spring Boot, JPA, H2, replication)
+│   └── src/main/java/io/raindrops/storage/
+│       ├── controller/ ← REST endpoints, Dashboard UI (Thymeleaf)
+│       ├── service/    ← DropService, RainMapService, ReplicationService
+│       ├── model/      ← JPA entities
+│       ├── repository/ ← Spring Data repositories
+│       └── config/     ← PeerConfig, ReaperConfig, SecurityConfig
+├── witness/            ← Witness Node (Spring Boot, drop verification)
+│   └── src/main/java/io/raindrops/witness/
+│       ├── controller/ ← REST endpoints
+│       └── service/    ← WitnessService (verify, reconstruct, store)
+├── Dockerfile.storage  ← Multi-stage ARM64/AMD64 build
+├── Dockerfile.witness  ← Witness Node Docker build
+├── docker-compose.yml  ← 3-node storage + witness orchestration
+└── entrypoint.sh       ← Runtime permission fixer
 ```
 
 ---
@@ -163,123 +120,106 @@ raindrops-fase1/
 
 - Java 17+
 - Maven 3.8+
+- Docker & Docker Compose (for deployment)
 
 ### Build and test
 
 ```bash
-git clone https://github.com/erac73/raindrops-fase1.git
-cd raindrops-fase1/raindrops
-mvn test
+# Build core + run tests
+mvn -f raindrops-fase1/raindrops/pom.xml install
+
+# Build storage + run tests
+mvn -f raindrops-fase1/storage/pom.xml test
 ```
 
-Expected output:
-
-```
-Tests run: 41, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
-```
-
-### Run interactive demo (Java)
+### Run locally with Docker
 
 ```bash
-cd raindrops-fase1/raindrops
-mvn compile exec:java -Dexec.mainClass="io.raindrops.demo.RainDropsDemo"
+docker compose -f docker-compose.yml up -d --build
 ```
 
-### Run Python implementation
+Endpoints:
+- Witness: `http://localhost:9080/witness/store`
+- Storage 1: `http://localhost:9081/swagger-ui.html`
+- Storage 2: `http://localhost:9082/swagger-ui.html`
+- Storage 3: `http://localhost:9083/swagger-ui.html`
+- Prometheus: `http://localhost:9081/actuator/prometheus`
+- Dashboard: `http://localhost:9081/`
 
-```bash
-cd raindrops-fase1/raindrops
-python raindrops.py
+### Using RainClient SDK
+
+```xml
+<dependency>
+    <groupId>io.raindrops</groupId>
+    <artifactId>raindrops-core</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
 ```
-
-### Quick example
 
 ```java
-import io.raindrops.core.RainDropsCore;
-import io.raindrops.core.RainDropsCore.RainResult;
+import io.raindrops.client.RainClient;
 
-// Fragment data into 7 drops, requiring 3 to reconstruct (1-year TTL)
-byte[] data    = "Confidential medical record".getBytes();
-RainResult rain = RainDropsCore.drop(data, 7, 3, 365);
+List<String> nodes = List.of("http://localhost:9081", "http://localhost:9082", "http://localhost:9083");
+try (RainClient client = new RainClient(nodes)) {
+    // Store data (5 drops, K=3, 30-day TTL)
+    String rainMapId = client.store("Hello Rain Drops!".getBytes(), 5, 3, 30);
+    System.out.println("Stored: " + rainMapId);
 
-System.out.println(rain);
-// RainResult{n=7, k=3, mode=hybrid, drops=7}
+    // Retrieve data
+    byte[] data = client.retrieve(rainMapId, masterKey);
+    System.out.println(new String(data));
+}
+```
 
-// Reconstruct using only 3 of the 7 drops (simulating 4 node failures)
-byte[] recovered = RainDropsCore.reconstruct(
-    rain.getDrops().subList(0, 3),
-    rain.getMasterKey(),
-    rain.getCiphertext(),
-    rain.getK(),
-    rain.isDirectMode()
-);
+### Using the Witness Node API
 
-System.out.println(new String(recovered));
-// Confidential medical record
+```bash
+# Store data via witness (automatically distributes to storage nodes)
+curl -X POST http://localhost:9080/witness/store \
+  -H "Content-Type: application/json" \
+  -d '{"data": "'$(echo -n "My secret data" | base64)'", "n": 5, "k": 3, "ttlDays": 30}'
+
+# Reconstruct via witness (verifies all drops before reconstruction)
+curl -X POST http://localhost:9080/witness/reconstruct \
+  -H "Content-Type: application/json" \
+  -d '{"rainMapId": "<rainMapId>", "masterKeyHex": "<masterKeyHex>"}'
+
+# Verify a specific drop
+curl -X POST http://localhost:9080/witness/verify \
+  -H "Content-Type: application/json" \
+  -d '{"dropJson": "<drop json>", "masterKeyHex": "<masterKeyHex>"}'
 ```
 
 ---
 
-## Test Coverage
+## Authentication & TLS
 
-| Test class | Tests | What is verified |
-|---|---|---|
-| `ShamirSSSTest` | 21 | Mathematical correctness, perfect secrecy, byte conversion, parameter validation |
-| `HybridSchemeTest` | 6 | Encrypt/decrypt round-trip, IND property, tamper detection, key zeroization |
-| `RainDropsCoreTest` | 14 | Full flow, N-K resilience, integrity, TTL, cross-rain independence |
-| **Total** | **41** | — |
-
-Notable tests:
-
-- **`singleShareRevealsNothing`** — runs 100 trials; no single drop reconstructs the secret (probability of false positive: 100/2⁵²¹)
-- **`toleratesLossOfNMinusK`** — drops 4 of 7 nodes; reconstructs correctly with exactly K=3 remaining
-- **`differentRainsAreIndependent`** — verifies drops cannot be mixed across rains with different master keys
+- Set `API_KEY` environment variable to enable API key authentication on storage nodes
+- All requests must include `X-API-Key` header
+- Public endpoints (health, swagger) remain open
+- TLS can be enabled by mounting a keystore and setting `TLS_ENABLED=true`
 
 ---
 
-## Roadmap
+## RainMap Replication
 
-| Phase | Component | Status |
-|---|---|---|
-| **1** | Cryptographic core (SSS, AES-GCM, HMAC, drops) | <img src="https://img.shields.io/badge/-done-success?style=flat-square" alt="Done"/> |
-| **2** | Storage Node — REST API (Spring Boot) + SQLite + TTL Reaper | <img src="https://img.shields.io/badge/-next-yellow?style=flat-square" alt="Next"/> |
-| **3** | Rain Map (AES-GCM sealed) + Witness Node + quorum protocol | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
-| **4** | Gossip Protocol — autonomous node discovery + reputation | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
-| **5** | Client SDK — high-level API + declarative YAML policies | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
-| **6** | Oracles — Time, Identity, Multisig, HTTP, Composite | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
-| **7** | Proof of Rain — zero-knowledge proofs over fragmented data | <img src="https://img.shields.io/badge/-planned-lightgrey?style=flat-square" alt="Planned"/> |
+RainMaps are automatically replicated to all peer nodes when stored, just like drops. This ensures that the RainMap remains accessible even if the originating node fails.
 
 ---
 
-## Dependencies
+## Docker Images
 
-| Library | Version | Purpose |
-|---|---|---|
-| Bouncy Castle | 1.77 | AES-256-GCM, HMAC-SHA256 |
-| JUnit Jupiter | 5.10.2 | Test framework |
-| AssertJ | 3.25.3 | Fluent test assertions |
+Multi-arch images (`linux/amd64` and `linux/arm64`) are built automatically:
+- **Raindrops Storage**: `raindrops/storage:latest`
+- **Raindrops Witness**: `raindrops/witness:latest`
 
 ---
 
 ## Publications
 
-This implementation is based on the following theoretical paper:
+> Ramírez Castillo, E. A. (2026). *Rain Drops: Un Modelo Teórico de Almacenamiento Distribuido de Información Basado en Criptografía de Umbral y Fragmentación Semántica.*
 
-> Ramírez Castillo, E. A. (2026). *Rain Drops: Un Modelo Teórico de Almacenamiento Distribuido de Información Basado en Criptografía de Umbral y Fragmentación Semántica.* Propuesta teórica.
-
-The implementation paper documenting Phase 1 design decisions, security property preservation and test results:
-
-> Ramírez Castillo, E. A. (2026). *Rain Drops — Fase 1: Implementación del Núcleo Criptográfico.* Artículo de implementación.
-
----
-
-## Known Limitations (Phase 1)
-
-- **Direct mode trailing zeros** — data ending in `0x00` bytes may be truncated in direct mode (≤65 bytes). Use hybrid mode or prefix data length. Resolved in Phase 2.
-- **In-memory master key** — `masterKey` is returned directly in `RainResult`. In the full system it lives only inside a sealed Rain Map. Resolved in Phase 3.
-- **BigInteger non-constant-time** — Lagrange interpolation uses `BigInteger` which is not constant-time, potentially leaking timing information. Mitigation requires constant-time field arithmetic (future work).
-- **SecureRandom entropy** — on containers without hardware RNG, early random output may be predictable. Use `haveged` or equivalent entropy daemon.
+> Ramírez Castillo, E. A. (2026). *Rain Drops — Fase 1: Implementación del Núcleo Criptográfico.*
 
 ---
 

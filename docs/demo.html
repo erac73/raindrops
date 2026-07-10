@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rain Drops — Demo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #0b0e14; color: #e0e0e0; padding: 2rem; }
+        h1 { color: #58a6ff; margin-bottom: 0.5rem; }
+        .subtitle { color: #8b949e; margin-bottom: 2rem; }
+        .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; max-width: 700px; }
+        .panel h2 { font-size: 1rem; text-transform: uppercase; color: #8b949e; margin-bottom: 1rem; }
+        label { display: block; color: #c9d1d9; margin: 0.75rem 0 0.25rem; }
+        input, textarea, select { width: 100%; padding: 0.5rem; background: #0b0e14; border: 1px solid #30363d; border-radius: 4px; color: #e0e0e0; font-family: inherit; }
+        textarea { font-family: monospace; }
+        button { background: #1f6feb; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; margin-top: 1rem; font-size: 0.9rem; }
+        button:hover { background: #388bfd; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        pre { background: #0b0e14; border: 1px solid #30363d; border-radius: 4px; padding: 0.75rem; margin-top: 0.5rem; overflow-x: auto; font-size: 0.85rem; max-height: 300px; overflow-y: auto; }
+        .success { color: #3fb950; }
+        .error { color: #f85149; }
+        .info { color: #58a6ff; }
+        .row { display: flex; gap: 1rem; }
+        .row > * { flex: 1; }
+        .endpoints { margin: 1rem 0; }
+        .endpoint { display: inline-block; background: #21262d; color: #8b949e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin: 0.25rem; border: 1px solid #30363d; cursor: pointer; }
+        .endpoint:hover { border-color: #58a6ff; color: #58a6ff; }
+        .nav { margin-bottom: 1.5rem; }
+        .nav a { color: #58a6ff; text-decoration: none; margin-right: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="index.html">&larr; Home</a>
+    </div>
+
+    <h1>Rain Drops Demo</h1>
+    <p class="subtitle">Interactive demo — store and retrieve data through the Witness Node</p>
+
+    <div class="panel">
+        <h2>Witness Node URL</h2>
+        <input type="text" id="baseUrl" value="http://localhost:9080" placeholder="http://localhost:9080">
+    </div>
+
+    <div class="row">
+        <div class="panel" style="flex:1;">
+            <h2>Store Data</h2>
+            <label for="storeData">Data to store</label>
+            <textarea id="storeData" rows="3" placeholder="Enter text to store securely...">Hello Rain Drops!</textarea>
+
+            <label for="storeN">N (total drops)</label>
+            <input type="number" id="storeN" value="5" min="2" max="20">
+
+            <label for="storeK">K (threshold)</label>
+            <input type="number" id="storeK" value="3" min="2" max="20">
+
+            <label for="storeTtl">TTL (days)</label>
+            <input type="number" id="storeTtl" value="30" min="1" max="3650">
+
+            <button id="storeBtn">Store</button>
+            <div id="storeResult"></div>
+        </div>
+
+        <div class="panel" style="flex:1;">
+            <h2>Reconstruct</h2>
+            <label for="rainMapId">RainMap ID</label>
+            <input type="text" id="rainMapId" placeholder="Paste RainMap ID">
+
+            <label for="masterKeyHex">Master Key (hex)</label>
+            <input type="text" id="masterKeyHex" placeholder="Paste Master Key (hex)">
+
+            <button id="reconstructBtn">Reconstruct</button>
+            <div id="reconstructResult"></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Response</h2>
+        <pre id="response">Ready.</pre>
+    </div>
+
+    <script>
+        const baseUrlInput = document.getElementById('baseUrl');
+        const storeBtn = document.getElementById('storeBtn');
+        const reconstructBtn = document.getElementById('reconstructBtn');
+        const responseEl = document.getElementById('response');
+
+        function log(msg, type) {
+            responseEl.innerHTML = `<span class="${type}">${msg}</span>`;
+        }
+
+        function appendLog(msg, type) {
+            responseEl.innerHTML += `\n<span class="${type}">${msg}</span>`;
+        }
+
+        storeBtn.addEventListener('click', async () => {
+            const baseUrl = baseUrlInput.value.trim();
+            const data = document.getElementById('storeData').value;
+            const n = parseInt(document.getElementById('storeN').value);
+            const k = parseInt(document.getElementById('storeK').value);
+            const ttlDays = parseInt(document.getElementById('storeTtl').value);
+
+            storeBtn.disabled = true;
+            log('Storing data...', 'info');
+
+            try {
+                const body = JSON.stringify({
+                    data: btoa(data),
+                    n, k, ttlDays
+                });
+
+                const resp = await fetch(baseUrl + '/witness/store', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body
+                });
+
+                const result = await resp.json();
+
+                if (resp.ok) {
+                    log('Store successful!', 'success');
+                    appendLog(`RainMap ID: ${result.rainMapId}`, 'info');
+                    appendLog(`Master Key: ${result.masterKeyHex}`, 'info');
+                    document.getElementById('rainMapId').value = result.rainMapId;
+                    document.getElementById('masterKeyHex').value = result.masterKeyHex;
+                } else {
+                    log(`Error: ${result.error || JSON.stringify(result)}`, 'error');
+                }
+            } catch (e) {
+                log(`Connection error: ${e.message}`, 'error');
+            } finally {
+                storeBtn.disabled = false;
+            }
+        });
+
+        reconstructBtn.addEventListener('click', async () => {
+            const baseUrl = baseUrlInput.value.trim();
+            const rainMapId = document.getElementById('rainMapId').value.trim();
+            const masterKeyHex = document.getElementById('masterKeyHex').value.trim();
+
+            if (!rainMapId || !masterKeyHex) {
+                log('Please provide both RainMap ID and Master Key', 'error');
+                return;
+            }
+
+            reconstructBtn.disabled = true;
+            log('Reconstructing...', 'info');
+
+            try {
+                const body = JSON.stringify({ rainMapId, masterKeyHex });
+
+                const resp = await fetch(baseUrl + '/witness/reconstruct', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body
+                });
+
+                const result = await resp.json();
+
+                if (resp.ok && result.success) {
+                    const decoded = atob(result.data);
+                    log('Reconstruction successful!', 'success');
+                    appendLog(`Decoded data: ${decoded}`, 'info');
+                    if (result.badDrops && result.badDrops.length > 0) {
+                        appendLog(`Bad drops: ${result.badDrops.join(', ')}`, 'error');
+                    }
+                } else {
+                    log(`Error: ${result.message || JSON.stringify(result)}`, 'error');
+                }
+            } catch (e) {
+                log(`Connection error: ${e.message}`, 'error');
+            } finally {
+                reconstructBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,11 @@
 server:
   port: ${STORAGE_PORT:8080}
+  ssl:
+    enabled: ${TLS_ENABLED:false}
+    key-store: ${TLS_KEYSTORE:}
+    key-store-password: ${TLS_KEYSTORE_PASSWORD:}
+    key-store-type: ${TLS_KEYSTORE_TYPE:PKCS12}
+    key-alias: ${TLS_KEY_ALIAS:raindrops}
 
 spring:
   datasource:

@@ -8,6 +8,28 @@ volumes:
   storage-3-data:
 
 services:
+  witness-node:
+    build:
+      context: .
+      dockerfile: Dockerfile.witness
+    container_name: raindrops-witness
+    ports:
+      - "9080:8080"
+    environment:
+      - WITNESS_PORT=8080
+      - STORAGE_URLS=http://keeper-1:8080,http://keeper-2:8080,http://keeper-3:8080
+      - API_KEY=${API_KEY:-}
+    networks:
+      rain-net:
+        aliases:
+          - witness
+    restart: unless-stopped
+    healthcheck:
+      test: wget -qO- http://localhost:8080/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   storage-node-1:
     build:
       context: .
@@ -19,6 +41,7 @@ services:
       - NODE_ID=keeper-1
       - PEER_URLS=http://keeper-2:8080,http://keeper-3:8080
       - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+      - API_KEY=${API_KEY:-}
     volumes:
       - storage-1-data:/app/data
     networks:
@@ -43,6 +66,7 @@ services:
       - NODE_ID=keeper-2
       - PEER_URLS=http://keeper-1:8080,http://keeper-3:8080
       - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+      - API_KEY=${API_KEY:-}
     volumes:
       - storage-2-data:/app/data
     networks:
@@ -67,6 +91,7 @@ services:
       - NODE_ID=keeper-3
       - PEER_URLS=http://keeper-1:8080,http://keeper-2:8080
       - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+      - API_KEY=${API_KEY:-}
     volumes:
       - storage-3-data:/app/data
     networks:

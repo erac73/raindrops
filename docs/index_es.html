@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rain Drops — Almacenamiento Distribuido Criptográfico</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #0b0e14; color: #e0e0e0; line-height: 1.6; }
+        header { background: #161b22; border-bottom: 1px solid #30363d; padding: 3rem 2rem; text-align: center; }
+        header img { width: 120px; margin-bottom: 1rem; }
+        header h1 { font-size: 2.5rem; color: #58a6ff; }
+        header p { color: #8b949e; font-size: 1.1rem; max-width: 600px; margin: 1rem auto; }
+        .badge { display: inline-block; background: #1f6feb; color: #fff; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; margin: 0.25rem; }
+        .container { max-width: 960px; margin: 0 auto; padding: 2rem; }
+        h2 { color: #58a6ff; margin: 2rem 0 1rem; font-size: 1.5rem; }
+        h3 { color: #c9d1d9; margin: 1.5rem 0 0.5rem; }
+        p, li { color: #8b949e; }
+        a { color: #58a6ff; }
+        code { background: #161b22; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9rem; color: #f0f6fc; }
+        pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .feature { text-align: center; padding: 1.5rem; }
+        .feature .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .tags { margin: 1rem 0; }
+        footer { text-align: center; padding: 2rem; border-top: 1px solid #30363d; color: #484f58; font-size: 0.85rem; margin-top: 3rem; }
+        .lang-switch { position: fixed; top: 1rem; right: 1rem; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 0.5rem 1rem; }
+        .lang-switch a { color: #8b949e; text-decoration: none; }
+        .lang-switch a:hover { color: #58a6ff; }
+    </style>
+</head>
+<body>
+    <div class="lang-switch">
+        <a href="index.html">English</a>
+    </div>
+
+    <header>
+        <img src="assets/raindrops-logo.svg" alt="Rain Drops Logo">
+        <h1>Rain Drops</h1>
+        <p><em>"Una gota de lluvia no contiene información sobre la tormenta."</em></p>
+        <div class="tags">
+            <span class="badge">Criptografía</span>
+            <span class="badge">Umbral SSS</span>
+            <span class="badge">AES-256-GCM</span>
+            <span class="badge">Almacenamiento Distribuido</span>
+            <span class="badge">Java 17</span>
+            <span class="badge">Spring Boot</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>¿Qué es Rain Drops?</h2>
+        <p>Rain Drops es un <strong>modelo de almacenamiento distribuido</strong> basado en <strong>criptografía de umbral (Shamir's Secret Sharing)</strong>. Los datos se fragmentan en micro-unidades criptográficas llamadas <strong>gotas (drops)</strong> que individualmente no tienen significado. Los datos originales solo pueden reconstruirse cuando un número suficiente de gotas convergen bajo condiciones verificadas.</p>
+
+        <div class="grid">
+            <div class="card feature">
+                <div class="icon">🔐</div>
+                <h3>Secreto Perfecto</h3>
+                <p>Con menos de K gotas, el secreto está oculto information-theoretically. Ni computadoras cuánticas pueden romperlo.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">🧩</div>
+                <h3>Umbral K-de-N</h3>
+                <p>Los datos se dividen en N gotas. Cualquier K gotas reconstruyen; K-1 no revelan nada. Resiliente a fallos de nodos.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">⏱️</div>
+                <h3>Expiración Temporal</h3>
+                <p>Cada gota tiene un TTL. Las gotas expiradas se eliminan automáticamente.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">📦</div>
+                <h3>Docker Multi-Arch</h3>
+                <p>Imágenes ARM64 y AMD64. Despliegue en Raspberry Pi, servidores x86 o cloud.</p>
+            </div>
+        </div>
+
+        <h2>Componentes</h2>
+        <ul>
+            <li><code>raindrops-core</code> — Librería criptográfica (SSS, AES-GCM, HMAC, RainMap)</li>
+            <li><code>raindrops-storage</code> — Nodo de almacenamiento Spring Boot con replicación</li>
+            <li><code>raindrops-witness</code> — Nodo testigo para verificación segura</li>
+            <li><code>RainClient SDK</code> — Cliente Java de alto nivel</li>
+        </ul>
+
+        <h2>Inicio Rápido</h2>
+        <pre><code>git clone https://github.com/erac73/raindrops-fase1.git
+cd raindrops-fase1
+mvn -f raindrops-fase1/raindrops/pom.xml install
+docker compose -f docker-compose.yml up -d --build</code></pre>
+    </div>
+
+    <footer>
+        Rain Drops — Edwar Antonio Ramírez Castillo, 2026 &middot; Licencia MIT
+    </footer>
+</body>
+</html>

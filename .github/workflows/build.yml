@@ -21,8 +21,14 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Run tests
+      - name: Run core tests
         run: mvn -f raindrops-fase1/raindrops/pom.xml test
+
+      - name: Install core
+        run: mvn -f raindrops-fase1/raindrops/pom.xml install -DskipTests -B -q
+
+      - name: Run storage tests
+        run: mvn -f raindrops-fase1/storage/pom.xml test
 
   docker:
     needs: build
@@ -32,10 +38,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build storage node image
+      - name: Build storage node image (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -44,4 +53,15 @@ jobs:
           tags: raindrops/storage:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build witness node image (multi-arch)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.witness
+          push: false
+          tags: raindrops/witness:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
