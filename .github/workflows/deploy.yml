@@ -1,0 +1,25 @@
+name: Deploy to Raspberry Pi
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.RASPBERRY_PI_HOST }}
+          username: ${{ secrets.RASPBERRY_PI_USER }}
+          key: ${{ secrets.RASPBERRY_PI_SSH_KEY }}
+          script: |
+            cd /opt/raindrops-fase1
+            git pull origin main
+            docker compose -f docker-compose.yml down
+            docker compose -f docker-compose.yml up -d --build
+            docker compose -f docker-compose.yml ps

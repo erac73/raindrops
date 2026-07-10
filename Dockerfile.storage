@@ -1,0 +1,42 @@
+# ─── Stage 1: Build ──────────────────────────────────────────────────
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
+
+LABEL maintainer="Rain Drops Team <team@raindrops.io>"
+LABEL version="0.1.0"
+
+WORKDIR /app
+
+# Copy only POMs first for dependency caching
+COPY raindrops-fase1/raindrops/pom.xml raindrops/pom.xml
+COPY raindrops-fase1/storage/pom.xml   storage/pom.xml
+
+# Resolve all dependencies (raindrops-core + storage)
+RUN mvn -pl storage -am dependency:go-offline -B
+
+# Copy source code
+COPY raindrops-fase1/raindrops/src raindrops/src
+COPY raindrops-fase1/storage/src   storage/src
+
+# Install raindrops-core to local repo, then package storage
+RUN mvn -pl raindrops install -DskipTests -B && \
+    mvn -pl storage    package  -DskipTests -B
+
+# ─── Stage 2: Runtime ────────────────────────────────────────────────
+FROM eclipse-temurin:17-jre-alpine
+
+LABEL maintainer="Rain Drops Team <team@raindrops.io>"
+LABEL version="0.1.0"
+
+RUN addgroup -S raindrops && adduser -S raindrops -G raindrops
+
+WORKDIR /app
+
+COPY --from=build /app/storage/target/*.jar app.jar
+
+RUN chown -R raindrops:raindrops /app
+
+USER raindrops
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

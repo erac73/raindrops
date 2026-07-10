@@ -1,0 +1,77 @@
+version: "3.9"
+
+networks:
+  rain-net:
+    driver: bridge
+
+volumes:
+  storage-1-data:
+  storage-2-data:
+  storage-3-data:
+
+services:
+  storage-node-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.storage
+    container_name: raindrops-storage-1
+    ports:
+      - "8081:8080"
+    environment:
+      - STORAGE_PORT=8081
+      - NODE_ID=keeper-1
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+    volumes:
+      - storage-1-data:/app/data
+    networks:
+      - rain-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  storage-node-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.storage
+    container_name: raindrops-storage-2
+    ports:
+      - "8082:8080"
+    environment:
+      - STORAGE_PORT=8082
+      - NODE_ID=keeper-2
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+    volumes:
+      - storage-2-data:/app/data
+    networks:
+      - rain-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  storage-node-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.storage
+    container_name: raindrops-storage-3
+    ports:
+      - "8083:8080"
+    environment:
+      - STORAGE_PORT=8083
+      - NODE_ID=keeper-3
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+    volumes:
+      - storage-3-data:/app/data
+    networks:
+      - rain-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

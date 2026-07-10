@@ -31,8 +31,8 @@ public final class Drop {
     private final byte[]     mac;     // 32 bytes — HMAC-SHA256 de integridad
     private final long       ttl;     // Unix epoch seconds de expiración
 
-    // Constructor paquete-privado — creado solo por DropFactory
-    Drop(byte[] id, int x, BigInteger y, byte[] mac, long ttl) {
+    // Constructor público — usado por DropFactory, DropSerializer, Storage Node
+    public Drop(byte[] id, int x, BigInteger y, byte[] mac, long ttl) {
         this.id  = Objects.requireNonNull(id,  "id no puede ser null").clone();
         this.x   = x;
         this.y   = Objects.requireNonNull(y,   "y no puede ser null");

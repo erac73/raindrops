@@ -25,6 +25,10 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 PRIME = 257  # Primer primo > 255, permite trabajar con bytes
 
 
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 def _eval_polynomial(coefficients: List[int], x: int) -> int:
     """Evalúa un polinomio en x usando el esquema de Horner (mod PRIME)."""
     result = 0
