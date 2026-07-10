@@ -174,7 +174,7 @@ public class WitnessService {
 
             RainMap rainMap = RainMap.create(drops, usedUrls, masterKey);
             String rainMapId = hex.formatHex(drops.get(0).getId());
-            String payloadHex = hex.formatHex(rainMap.getEncryptedPayload());
+            String payloadHex = hex.formatHex(rainMap.getCombinedPayload());
 
             Map<String, Object> body = Map.of(
                 "rainMapId", rainMapId,

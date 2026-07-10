@@ -88,7 +88,7 @@ public class RainMapService {
         List<Drop> drops = dropJsons.stream().map(DropSerializer::fromJson).toList();
         RainMap rainMap = RainMap.create(drops, nodeUrls, masterKey);
         String rainMapId = hex.formatHex(drops.get(0).getId());
-        return new BuildRainMapResult(rainMapId, rainMap.getEncryptedPayload(), rainMap.getN(), rainMap.getK());
+        return new BuildRainMapResult(rainMapId, rainMap.getCombinedPayload(), rainMap.getN(), rainMap.getK());
     }
 
     public record BuildRainMapResult(String rainMapId, byte[] encryptedPayload, int n, int k) {}

@@ -158,6 +158,14 @@ public final class RainMap {
         return encryptedPayload.clone();
     }
 
+    public byte[] getCombinedPayload() {
+        if (nonce == null || encryptedPayload == null) return null;
+        byte[] combined = new byte[NONCE_BYTES + encryptedPayload.length];
+        System.arraycopy(nonce, 0, combined, 0, NONCE_BYTES);
+        System.arraycopy(encryptedPayload, 0, combined, NONCE_BYTES, encryptedPayload.length);
+        return combined;
+    }
+
     public byte[] getNonce() {
         return nonce.clone();
     }
