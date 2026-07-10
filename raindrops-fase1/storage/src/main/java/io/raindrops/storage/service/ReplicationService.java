@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClient.RequestHeadersSpec;
 
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -34,7 +33,7 @@ public class ReplicationService {
         this.apiKey = apiKey;
     }
 
-    private void addAuth(RequestHeadersSpec<?> spec) {
+    private void addAuth(RestClient.RequestHeadersSpec<?> spec) {
         if (apiKey != null && !apiKey.isBlank()) {
             spec.header("X-API-Key", apiKey);
         }
@@ -46,11 +45,9 @@ public class ReplicationService {
                 try {
                     String url = peer + "/drops";
                     log.info("Replicating drop {} to {}", dropId, url);
-                    addAuth(restClient.post()
-                        .uri(url)
-                        .body(body))
-                        .retrieve()
-                        .toBodilessEntity();
+                    var req = restClient.post().uri(url).body(body);
+                    addAuth(req);
+                    req.retrieve().toBodilessEntity();
                     log.info("Replicated drop {} to {}", dropId, url);
                 } catch (Exception e) {
                     log.warn("Failed to replicate drop {} to peer {}: {}", dropId, peer, e.getMessage());
@@ -77,12 +74,12 @@ public class ReplicationService {
                 try {
                     String url = peer + "/rainmaps/external";
                     log.info("Replicating RainMap {} to {}", rainMapId, url);
-                    addAuth(restClient.post()
+                    var req = restClient.post()
                         .uri(url)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(mapper.writeValueAsString(body)))
-                        .retrieve()
-                        .toBodilessEntity();
+                        .body(mapper.writeValueAsString(body));
+                    addAuth(req);
+                    req.retrieve().toBodilessEntity();
                     log.info("Replicated RainMap {} to {}", rainMapId, url);
                 } catch (Exception e) {
                     log.warn("Failed to replicate RainMap {} to peer {}: {}", rainMapId, peer, e.getMessage());
@@ -96,10 +93,9 @@ public class ReplicationService {
             try {
                 String url = peer + "/drops/" + dropId;
                 log.info("Fetching drop {} from peer {}", dropId, url);
-                String body = addAuth(restClient.get()
-                    .uri(url))
-                    .retrieve()
-                    .body(String.class);
+                var req = restClient.get().uri(url);
+                addAuth(req);
+                String body = req.retrieve().body(String.class);
                 if (body != null && !body.isBlank()) {
                     log.info("Found drop {} on peer {}", dropId, url);
                     return body;
