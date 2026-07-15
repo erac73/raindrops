@@ -157,9 +157,61 @@ docker compose -f docker-compose.yml up -d --build</code></pre>
         
         <h2>Demo Rapido</h2>
         <div class="card">
-            <h3>Demo Rapido</h3>
-            <p>Prueba la demo web interactiva:</p>
+            <h3>Prueba Rain Drops en 60 segundos</h3>
+
+            <h3>Paso 1 — Abrir la Demo</h3>
+            <p>Haz clic en el boton para abrir la demo interactiva:</p>
             <p><a href="demo.html" style="display: inline-block; background: #1f6feb; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin-top: 0.5rem;">Abrir Demo &rarr;</a></p>
+
+            <h3>Paso 2 — Configurar la URL del Witness Node</h3>
+            <p>En la parte superior de la demo, configura la <strong>URL del Witness Node</strong>:</p>
+            <pre><code>http://localhost:9080        # local
+http://&lt;ip-pi&gt;:9080          # Raspberry Pi</code></pre>
+            <p><em>El Witness Node coordina el almacenamiento y la reconstruccion. Debe estar ejecutandose.</em></p>
+
+            <h3>Paso 3 — Almacenar Datos</h3>
+            <ol style="color: #8b949e; padding-left: 1.5rem;">
+                <li>Escribe cualquier texto en el campo <strong>Data to store</strong> (ej: <code>Mi contrasena secreta</code>)</li>
+                <li>Configura los parametros:
+                    <ul style="color: #8b949e;">
+                        <li><strong>N</strong> (total drops) — Total de fragmentos a crear (recomendado: 5)</li>
+                        <li><strong>K</strong> (threshold) — Minimo de gotas necesarias para reconstruir (recomendado: 3)</li>
+                        <li><strong>TTL</strong> (days) — Los drops expiran despues de este tiempo (recomendado: 30)</li>
+                    </ul>
+                </li>
+                <li>Haz clic en <strong>Store</strong></li>
+                <li>La demo retorna:
+                    <ul style="color: #8b949e;">
+                        <li><strong>RainMap ID</strong> — Indice cifrado de donde estan tus drops</li>
+                        <li><strong>Master Key</strong> — Tu clave de descifrado (guardala!)</li>
+                    </ul>
+                </li>
+            </ol>
+            <p><em>Estos dos valores son todo lo que necesitas para reconstruir despues. El Witness Node no almacena nada.</em></p>
+
+            <h3>Paso 4 — Reconstruir</h3>
+            <ol style="color: #8b949e; padding-left: 1.5rem;">
+                <li>Los campos <strong>RainMap ID</strong> y <strong>Master Key</strong> se autocompletan despues de almacenar</li>
+                <li>Haz clic en <strong>Reconstruct</strong></li>
+                <li>Los datos originales aparecen en el panel de respuesta</li>
+            </ol>
+
+            <h3>Paso 5 — Verificar que Funciona</h3>
+            <p>Prueba estos experimentos:</p>
+            <ul style="color: #8b949e; padding-left: 1.5rem;">
+                <li><strong>Elimina un drop:</strong> Borra un nodo de almacenamiento y reconstruye — sigue funcionando (K de N)</li>
+                <li><strong>Clave incorrecta:</strong> Cambia un caracter en la Master Key — la reconstruccion falla</li>
+                <li><strong>Drop expirado:</strong> Pon TTL=1, espera un dia, reconstruye — los drops desaparecieron</li>
+            </ul>
+
+            <h3>Que Pasa por Detras</h3>
+            <pre><code>STORE:
+  Cliente → Witness → [AES-256-GCM cifrar] → [Shamir SSS dividir] → Distribuir a N nodos
+  Witness retorna: rainMapId + masterKey
+
+RECONSTRUCT:
+  Cliente → Witness (rainMapId + masterKey) → [Localizar drops] → [Verificar HMAC] → [Interpolacion de Lagrange] → [AES descifrar]
+  Witness retorna: datos originales</code></pre>
         </div>
 
         <h2>Despliegue</h2>
