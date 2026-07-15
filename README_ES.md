@@ -503,12 +503,12 @@ raindrops-fase1/
 
 | Fase | Estado | Descripción |
 |---|---|---|
-| Fase 1 | ✅ Completada | Núcleo criptográfico: ShamirSSS, HybridScheme, RainDropsCore |
-| Fase 2 | ✅ Completada | Storage Node: Spring Boot, JPA, H2, replicación, Dashboard |
-| Fase 3 | ✅ Completada | Witness Node: Verificación, Auth/TLS, RainMap replication, CI/CD |
-| **Fase 4** | 🔄 **En progreso** | **Producción: Monitoreo, Rate Limiting, Health Checks, Hardening** |
-| Fase 5 | 📋 Planificada | Distribución geográfica, consensus entre nodos, key rotation |
-| Fase 6 | 📋 Planificada | Clientes multi-lenguaje (Python, JS, Go), API pública |
+| Fase 1 | [DONE] Completada | Núcleo criptográfico: ShamirSSS, HybridScheme, RainDropsCore |
+| Fase 2 | [DONE] Completada | Storage Node: Spring Boot, JPA, H2, replicación, Dashboard |
+| Fase 3 | [DONE] Completada | Witness Node: Verificación, Auth/TLS, RainMap replication, CI/CD |
+| **Fase 4** | [...] **En progreso** | **Producción: Monitoreo, Rate Limiting, Health Checks, Hardening** |
+| Fase 5 | TODO Planificada | Distribución geográfica, consensus entre nodos, key rotation |
+| Fase 6 | TODO Planificada | Clientes multi-lenguaje (Python, JS, Go), API pública |
 
 ---
 
