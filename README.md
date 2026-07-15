@@ -313,6 +313,85 @@ curl http://localhost:9080/health
 ---
 
 ## API Usage
+---
+
+## Quick Demo
+
+Test Rain Drops in 60 seconds using the interactive web demo.
+
+### Step 1 — Open the Demo
+
+Open the demo page in your browser:
+
+- **Local:** `http://localhost:9089/demo.html`
+- **Raspberry Pi:** `http://<pi-ip>:8089/demo.html`
+- **GitHub Pages:** `https://erac73.github.io/raindrops/demo.html`
+
+### Step 2 — Configure the Witness Node URL
+
+At the top of the demo, set the **Witness Node URL**:
+
+```
+http://localhost:9080        # local
+http://<pi-ip>:9080          # Raspberry Pi
+```
+
+> The Witness Node coordinates storage and reconstruction. It must be running.
+
+### Step 3 — Store Data
+
+1. Enter any text in the **Data to store** field (e.g., `My secret password`)
+2. Set the parameters:
+
+| Parameter | Meaning | Recommended |
+|---|---|---|
+| **N** (total drops) | Total fragments to create | 5 |
+| **K** (threshold) | Minimum drops needed to reconstruct | 3 |
+| **TTL** (days) | Drops expire after this time | 30 |
+
+3. Click **Store**
+4. The demo returns:
+   - **RainMap ID** — Encrypted index of where your drops are stored
+   - **Master Key** — Your decryption key (save this!)
+
+> These two values are all you need to reconstruct later. The Witness Node stores nothing.
+
+### Step 4 — Reconstruct
+
+1. The **RainMap ID** and **Master Key** fields are auto-filled after storing
+2. Click **Reconstruct**
+3. The original data appears in the response panel
+
+### Step 5 — Verify It Works
+
+Try these experiments:
+
+- **Remove a drop:** Delete one storage node and reconstruct — it still works (K of N)
+- **Wrong key:** Change one character in the Master Key — reconstruction fails
+- **Expired drop:** Set TTL=1, wait a day, reconstruct — drops are gone
+
+### Understanding the Response
+
+```json
+{
+  "success": true,
+  "data": "TXkgc2VjcmV0IGRhdGE=",
+  "n": 5,
+  "k": 3
+}
+```
+
+### What Happens Under the Hood
+
+```
+STORE:
+  Client → Witness → [AES-256-GCM encrypt] → [Shamir SSS split] → Distribute to N nodes
+  Witness returns: rainMapId + masterKey
+
+RECONSTRUCT:
+  Client → Witness (rainMapId + masterKey) → [Locate drops] → [Verify HMAC] → [Lagrange interpolation] → [AES decrypt]
+  Witness returns: original data
+```
 
 ### RainClient SDK (Java)
 
