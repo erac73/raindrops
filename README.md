@@ -18,6 +18,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"/></a>
   <img src="https://img.shields.io/badge/Java-17%2B-orange?style=flat-square" alt="Java 17+"/>
   <img src="https://img.shields.io/badge/Docker-multi--arch-blue?style=flat-square" alt="Docker multi-arch"/>
+  <a href="https://erac73.github.io/raindrops/"><img src="https://img.shields.io/badge/Project-Page-blue?style=flat-square" alt="Project Page"/></a>
   <img src="https://img.shields.io/badge/Phase-4%20Production-purple?style=flat-square" alt="Phase 4"/>
 </p>
 

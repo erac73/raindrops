@@ -24,7 +24,7 @@
         .card h3 { margin-top: 0; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
         .feature { text-align: center; padding: 1.5rem; }
-        .feature .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .feature .icon { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: bold; color: #58a6ff; }
         .tags { margin: 1rem 0; }
         footer { text-align: center; padding: 2rem; border-top: 1px solid #30363d; color: #484f58; font-size: 0.85rem; margin-top: 3rem; }
         .lang-switch { position: fixed; top: 1rem; right: 1rem; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 0.5rem 1rem; }
@@ -34,7 +34,7 @@
 </head>
 <body>
     <div class="lang-switch">
-        <a href="index_es.html">Español</a>
+        <a href="index_es.html">Espanol</a>
     </div>
 
     <header>
@@ -50,10 +50,10 @@
             <span class="badge">Spring Boot</span>
         </div>
         <p>
-            <a href="https://github.com/erac73/raindrops-fase1">GitHub</a> &middot;
+            <a href="https://github.com/erac73/raindrops">GitHub</a> &middot;
             <a href="ARCHITECTURE_EN.md">Architecture</a> &middot;
             <a href="API.md">API Reference</a> &middot;
-            <a href="https://github.com/erac73/raindrops-fase1/issues">Issues</a>
+            <a href="https://github.com/erac73/raindrops/issues">Issues</a>
         </p>
     </header>
 
@@ -64,50 +64,69 @@
 
         <h2>Architecture</h2>
         <div class="card">
-            <pre><code>┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│  RainClient │────▶│ Witness Node │────▶│ Storage Node │
-│   (SDK)     │     │ (verifier)   │     │   keeper-1   │
-└─────────────┘     │              │     └──────────────┘
-                    │  /witness/   │     ┌──────────────┐
-                    │  store       │────▶│ Storage Node │
-                    │  /witness/   │     │   keeper-2   │
-                    │  reconstruct │     └──────────────┘
-                    │  /witness/   │     ┌──────────────┐
-                    │  verify      │────▶│ Storage Node │
-                    └──────────────┘     │   keeper-3   │
-                                         └──────────────┘</code></pre>
+            <pre><code>+--------------+     +--------------+     +--------------+
+|  RainClient  |---->| Witness Node |---->| Storage Node |
+|    (SDK)     |     |  (verifier)  |     |   keeper-1   |
++--------------+     |              |     +--------------+
+                     |  /witness/   |     +--------------+
+                     |  store       |---->| Storage Node |
+                     |  /witness/   |     |   keeper-2   |
+                     | reconstruct  |     +--------------+
+                     |  /witness/   |     +--------------+
+                     |  verify      |---->| Storage Node |
+                     +--------------+     |   keeper-3   |
+                                          +--------------+</code></pre>
         </div>
 
         <div class="grid">
             <div class="card feature">
-                <div class="icon">🔐</div>
+                <div class="icon">[K]</div>
                 <h3>Perfect Secrecy</h3>
                 <p>With fewer than K drops, the secret is information-theoretically hidden. Not even quantum computers can break it.</p>
             </div>
             <div class="card feature">
-                <div class="icon">🧩</div>
+                <div class="icon">[N]</div>
                 <h3>K-of-N Threshold</h3>
                 <p>Data is split into N drops. Any K drops can reconstruct; K-1 reveal nothing. Resilient to node failures.</p>
             </div>
             <div class="card feature">
-                <div class="icon">⏱️</div>
+                <div class="icon">[TTL]</div>
                 <h3>Temporal Expiry</h3>
                 <p>Each drop has a TTL. Expired drops are automatically deleted. Time-bound access control by design.</p>
             </div>
             <div class="card feature">
-                <div class="icon">✅</div>
+                <div class="icon">[HMAC]</div>
                 <h3>Integrity Verified</h3>
                 <p>Each drop carries an HMAC-SHA256 MAC. The Witness Node verifies all drops before reconstruction.</p>
             </div>
             <div class="card feature">
-                <div class="icon">📦</div>
+                <div class="icon">[ARM]</div>
                 <h3>Multi-Arch Docker</h3>
                 <p>ARM64 and AMD64 images built automatically. Deploy on Raspberry Pi, x86 servers, or cloud.</p>
             </div>
             <div class="card feature">
-                <div class="icon">📊</div>
+                <div class="icon">[MET]</div>
                 <h3>Prometheus Metrics</h3>
                 <p>All nodes expose metrics, health checks, Swagger docs, and a web dashboard for monitoring.</p>
+            </div>
+        </div>
+
+        <h2>Phase 4 — Production</h2>
+        <div class="grid">
+            <div class="card feature">
+                <div class="icon">[RL]</div>
+                <h3>Rate Limiting</h3>
+                <p>Token bucket algorithm limits API requests per minute per client IP. Protects against abuse.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">[LOG]</div>
+                <h3>Audit Logging</h3>
+                <p>Every API request and response logged with unique ID, duration, and status code.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">[HP]</div>
+                <h3>Health Checks</h3>
+                <p>Detailed health indicators: memory, disk, uptime, node count. Prometheus-ready.</p>
             </div>
         </div>
 
@@ -123,6 +142,17 @@
             <a href="API.md" style="background: #21262d; color: #58a6ff; border: 1px solid #30363d; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none;">API Reference &rarr;</a>
             <a href="demo.html" style="background: #21262d; color: #58a6ff; border: 1px solid #30363d; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none;">Interactive Demo &rarr;</a>
         </div>
+
+        <h2>Roadmap</h2>
+        <div class="card">
+            <pre><code>Phase 1  [DONE]   Cryptographic core: ShamirSSS, HybridScheme, RainDropsCore
+Phase 2  [DONE]   Storage Node: Spring Boot, JPA, H2, replication, Dashboard
+Phase 3  [DONE]   Witness Node: Verification, Auth/TLS, RainMap replication, CI/CD
+Phase 4  [....]   Production: Monitoring, Rate Limiting, Health Checks, Hardening
+Phase 5  [TODO]   Geographic distribution, node consensus, key rotation
+Phase 6  [TODO]   Multi-language clients (Python, JS, Go), public API</code></pre>
+        </div>
+
         <h2>Components</h2>
         <ul>
             <li><code>raindrops-core</code> — Cryptographic library (SSS, AES-GCM, HMAC, RainMap)</li>
@@ -132,8 +162,8 @@
         </ul>
 
         <h2>Quick Start</h2>
-        <pre><code>git clone https://github.com/erac73/raindrops-fase1.git
-cd raindrops-fase1
+        <pre><code>git clone https://github.com/erac73/raindrops.git
+cd raindrops
 mvn -f raindrops-fase1/raindrops/pom.xml install
 docker compose -f docker-compose.yml up -d --build</code></pre>
 
@@ -141,11 +171,11 @@ docker compose -f docker-compose.yml up -d --build</code></pre>
         <p>Three storage nodes (ports 9081-9083) + one witness node (port 9080) orchestrated via Docker Compose. Native ARM64 support for Raspberry Pi.</p>
 
         <h2>Publications</h2>
-        <p>Ramírez Castillo, E. A. (2026). <em>Rain Drops: Un Modelo Teórico de Almacenamiento Distribuido de Información Basado en Criptografía de Umbral y Fragmentación Semántica.</em></p>
+        <p>Ramirez Castillo, E. A. (2026). <em>Rain Drops: Un Modelo Teorico de Almacenamiento Distribuido de Informacion Basado en Criptografia de Umbral y Fragmentacion Semantica.</em></p>
     </div>
 
     <footer>
-        Rain Drops — Edwar Antonio Ramírez Castillo, 2026 &middot; MIT License
+        Rain Drops — Edwar Antonio Ramirez Castillo, 2026 &middot; MIT License
     </footer>
 </body>
 </html>

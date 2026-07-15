@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Rain Drops — Almacenamiento Distribuido Criptográfico</title>
+    <title>Rain Drops — Almacenamiento Distribuido Criptografico</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, sans-serif; background: #0b0e14; color: #e0e0e0; line-height: 1.6; }
@@ -21,9 +21,10 @@
         pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; }
         pre code { background: none; padding: 0; }
         .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+        .card h3 { margin-top: 0; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
         .feature { text-align: center; padding: 1.5rem; }
-        .feature .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .feature .icon { font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: bold; color: #58a6ff; }
         .tags { margin: 1rem 0; }
         footer { text-align: center; padding: 2rem; border-top: 1px solid #30363d; color: #484f58; font-size: 0.85rem; margin-top: 3rem; }
         .lang-switch { position: fixed; top: 1rem; right: 1rem; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 0.5rem 1rem; }
@@ -39,66 +40,135 @@
     <header>
         <img src="assets/raindrops-logo.svg" alt="Rain Drops Logo">
         <h1>Rain Drops</h1>
-        <p><em>"Una gota de lluvia no contiene información sobre la tormenta."</em></p>
+        <p><em>"Una gota de lluvia no contiene informacion sobre la tormenta."</em></p>
         <div class="tags">
-            <span class="badge">Criptografía</span>
+            <span class="badge">Criptografia</span>
             <span class="badge">Umbral SSS</span>
             <span class="badge">AES-256-GCM</span>
             <span class="badge">Almacenamiento Distribuido</span>
             <span class="badge">Java 17</span>
             <span class="badge">Spring Boot</span>
         </div>
+        <p>
+            <a href="https://github.com/erac73/raindrops">GitHub</a> &middot;
+            <a href="ARCHITECTURE.md">Arquitectura</a> &middot;
+            <a href="API.md">Referencia API</a> &middot;
+            <a href="https://github.com/erac73/raindrops/issues">Issues</a>
+        </p>
     </header>
 
     <div class="container">
-        <h2>¿Qué es Rain Drops?</h2>
-        <p>Rain Drops es un <strong>modelo de almacenamiento distribuido</strong> basado en <strong>criptografía de umbral (Shamir's Secret Sharing)</strong>. Los datos se fragmentan en micro-unidades criptográficas llamadas <strong>gotas (drops)</strong> que individualmente no tienen significado. Los datos originales solo pueden reconstruirse cuando un número suficiente de gotas convergen bajo condiciones verificadas.</p>
+        <h2>Que es Rain Drops?</h2>
+        <p>Rain Drops es un <strong>modelo de almacenamiento distribuido</strong> basado en <strong>criptografia de umbral (Shamir's Secret Sharing)</strong>. Los datos se fragmentan en micro-unidades criptograficas llamadas <strong>gotas (drops)</strong> que individualmente no tienen significado. Los datos originales solo pueden reconstruirse cuando un numero suficiente de gotas convergen bajo condiciones verificadas.</p>
+        <p>Esto no es cifrado encima de almacenamiento. <strong>La confidencialidad es una propiedad estructural del modelo.</strong></p>
+
+        <h2>Arquitectura</h2>
+        <div class="card">
+            <pre><code>+--------------+     +--------------+     +--------------+
+|  RainClient  |---->| Nodo Testigo |---->| Nodo Almacen |
+|    (SDK)     |     |  (verifica)  |     |  keeper-1    |
++--------------+     |              |     +--------------+
+                     |  /witness/   |     +--------------+
+                     |  store       |---->| Nodo Almacen |
+                     |  /witness/   |     |  keeper-2    |
+                     | reconstruct  |     +--------------+
+                     |  /witness/   |     +--------------+
+                     |  verify      |---->| Nodo Almacen |
+                     +--------------+     |  keeper-3    |
+                                          +--------------+</code></pre>
+        </div>
 
         <div class="grid">
             <div class="card feature">
-                <div class="icon">🔐</div>
+                <div class="icon">[K]</div>
                 <h3>Secreto Perfecto</h3>
-                <p>Con menos de K gotas, el secreto está oculto information-theoretically. Ni computadoras cuánticas pueden romperlo.</p>
+                <p>Con menos de K gotas, el secreto esta oculto informaticamente. Ni computadoras cuanticas pueden romperlo.</p>
             </div>
             <div class="card feature">
-                <div class="icon">🧩</div>
+                <div class="icon">[N]</div>
                 <h3>Umbral K-de-N</h3>
                 <p>Los datos se dividen en N gotas. Cualquier K gotas reconstruyen; K-1 no revelan nada. Resiliente a fallos de nodos.</p>
             </div>
             <div class="card feature">
-                <div class="icon">⏱️</div>
-                <h3>Expiración Temporal</h3>
-                <p>Cada gota tiene un TTL. Las gotas expiradas se eliminan automáticamente.</p>
+                <div class="icon">[TTL]</div>
+                <h3>Expiracion Temporal</h3>
+                <p>Cada gota tiene un TTL. Las gotas expiradas se eliminan automaticamente. Control de acceso temporal por diseno.</p>
             </div>
             <div class="card feature">
-                <div class="icon">📦</div>
+                <div class="icon">[HMAC]</div>
+                <h3>Integridad Verificada</h3>
+                <p>Cada gota lleva un HMAC-SHA256. El Nodo Testigo verifica todas las gotas antes de reconstruir.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">[ARM]</div>
                 <h3>Docker Multi-Arch</h3>
-                <p>Imágenes ARM64 y AMD64. Despliegue en Raspberry Pi, servidores x86 o cloud.</p>
+                <p>Imagenes ARM64 y AMD64. Despliegue en Raspberry Pi, servidores x86 o cloud.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">[MET]</div>
+                <h3>Metricas Prometheus</h3>
+                <p>Todos los nodos exponen metricas, health checks, docs Swagger y dashboard web.</p>
             </div>
         </div>
+
+        <h2>Fase 4 — Produccion</h2>
+        <div class="grid">
+            <div class="card feature">
+                <div class="icon">[RL]</div>
+                <h3>Rate Limiting</h3>
+                <p>Algoritmo token bucket limita peticiones API por minuto por IP de cliente. Protege contra abuso.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">[LOG]</div>
+                <h3>Audit Logging</h3>
+                <p>Cada peticion y respuesta API registrada con ID unico, duracion y codigo de estado.</p>
+            </div>
+            <div class="card feature">
+                <div class="icon">[HP]</div>
+                <h3>Health Checks</h3>
+                <p>Indicadores detallados: memoria, disco, uptime, conteo de nodos. Listo para Prometheus.</p>
+            </div>
+        </div>
+
+        <h2>Roadmap</h2>
+        <div class="card">
+            <pre><code>Fase 1  [DONE]   Nucleo criptografico: ShamirSSS, HybridScheme, RainDropsCore
+Fase 2  [DONE]   Storage Node: Spring Boot, JPA, H2, replicacion, Dashboard
+Fase 3  [DONE]   Witness Node: Verificacion, Auth/TLS, RainMap replication, CI/CD
+Fase 4  [....]   Produccion: Monitoreo, Rate Limiting, Health Checks, Hardening
+Fase 5  [TODO]   Distribucion geografica, consensus entre nodos, key rotation
+Fase 6  [TODO]   Clientes multi-lenguaje (Python, JS, Go), API publica</code></pre>
+        </div>
+
+        <h2>Componentes</h2>
+        <ul>
+            <li><code>raindrops-core</code> — Libreria criptografica (SSS, AES-GCM, HMAC, RainMap)</li>
+            <li><code>raindrops-storage</code> — Nodo de almacenamiento Spring Boot con replicacion y reaper TTL</li>
+            <li><code>raindrops-witness</code> — Nodo testigo para verificacion segura de reconstruccion</li>
+            <li><code>RainClient SDK</code> — Cliente Java de alto nivel para operaciones DROP/RECONSTRUCT</li>
+        </ul>
+
+        <h2>Inicio Rapido</h2>
+        <pre><code>git clone https://github.com/erac73/raindrops.git
+cd raindrops
+mvn -f raindrops-fase1/raindrops/pom.xml install
+docker compose -f docker-compose.yml up -d --build</code></pre>
+
+        <h2>Despliegue</h2>
+        <p>Tres nodos de almacenamiento (puertos 9081-9083) + un nodo testigo (puerto 9080) orquestados via Docker Compose. Soporte nativo ARM64 para Raspberry Pi.</p>
 
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0;">
             <a href="ARCHITECTURE.md" style="background: #1f6feb; color: #fff; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none;">Arquitectura &rarr;</a>
             <a href="API.md" style="background: #21262d; color: #58a6ff; border: 1px solid #30363d; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none;">Referencia API &rarr;</a>
             <a href="demo.html" style="background: #21262d; color: #58a6ff; border: 1px solid #30363d; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none;">Demo Interactiva &rarr;</a>
         </div>
-        <h2>Componentes</h2>
-        <ul>
-            <li><code>raindrops-core</code> — Librería criptográfica (SSS, AES-GCM, HMAC, RainMap)</li>
-            <li><code>raindrops-storage</code> — Nodo de almacenamiento Spring Boot con replicación</li>
-            <li><code>raindrops-witness</code> — Nodo testigo para verificación segura</li>
-            <li><code>RainClient SDK</code> — Cliente Java de alto nivel</li>
-        </ul>
 
-        <h2>Inicio Rápido</h2>
-        <pre><code>git clone https://github.com/erac73/raindrops-fase1.git
-cd raindrops-fase1
-mvn -f raindrops-fase1/raindrops/pom.xml install
-docker compose -f docker-compose.yml up -d --build</code></pre>
+        <h2>Publicaciones</h2>
+        <p>Ramirez Castillo, E. A. (2026). <em>Rain Drops: Un Modelo Teorico de Almacenamiento Distribuido de Informacion Basado en Criptografia de Umbral y Fragmentacion Semantica.</em></p>
     </div>
 
     <footer>
-        Rain Drops — Edwar Antonio Ramírez Castillo, 2026 &middot; Licencia MIT
+        Rain Drops — Edwar Antonio Ramirez Castillo, 2026 &middot; Licencia MIT
     </footer>
 </body>
 </html>
