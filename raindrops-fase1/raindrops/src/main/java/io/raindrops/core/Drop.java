@@ -31,7 +31,16 @@ public final class Drop {
     private final byte[]     mac;     // 32 bytes — HMAC-SHA256 de integridad
     private final long       ttl;     // Unix epoch seconds de expiración
 
-    // Constructor público — usado por DropFactory, DropSerializer, Storage Node
+    /**
+     * Constructor publico de Drop.
+     *
+     * @param id   Identificador opaco de 32 bytes (HMAC-SHA256).
+     * @param x    Coordenada x del share SSS (indice 1-based).
+     * @param y    Coordenada y del share = f(x) mod p.
+     * @param mac  HMAC-SHA256 de integridad de 32 bytes.
+     * @param ttl  Instante de expiracion Unix en segundos.
+     * @throws NullPointerException si id, y o mac son nulos.
+     */
     public Drop(byte[] id, int x, BigInteger y, byte[] mac, long ttl) {
         this.id  = Objects.requireNonNull(id,  "id no puede ser null").clone();
         this.x   = x;
@@ -42,10 +51,19 @@ public final class Drop {
 
     // ── Getters ──────────────────────────────────────────────────────────
 
+    /** @return Clon del identificador opaco de 32 bytes. */
     public byte[]     getId()  { return id.clone(); }
+
+    /** @return Coordenada x del share (indice 1-based). */
     public int        getX()   { return x; }
+
+    /** @return Coordenada y del share = f(x) mod p. */
     public BigInteger getY()   { return y; }
+
+    /** @return Clon del HMAC-SHA256 de integridad de 32 bytes. */
     public byte[]     getMac() { return mac.clone(); }
+
+    /** @return Instante de expiracion Unix en segundos. */
     public long       getTtl() { return ttl; }
 
     // ── Estado temporal ──────────────────────────────────────────────────

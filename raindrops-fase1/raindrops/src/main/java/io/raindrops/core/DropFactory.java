@@ -65,6 +65,12 @@ public final class DropFactory {
 
     /**
      * Versión con TTL absoluto (útil para tests y reconstrucción desde BD).
+     *
+     * @param x         Coordenada x del share (índice 1-based).
+     * @param y         Coordenada y = f(x) mod p.
+     * @param masterKey Clave maestra de la lluvia (32 bytes).
+     * @param ttlEpoch  Instante de expiracion Unix absoluto en segundos.
+     * @return          Drop listo para enviar a un Storage Node.
      */
     public static Drop create(int x, BigInteger y, byte[] masterKey, long ttlEpoch) {
         validateMasterKey(masterKey);
@@ -105,6 +111,10 @@ public final class DropFactory {
     /**
      * Lanza excepción detallada si el drop no pasa la verificación.
      * Útil en el Witness Node para log de auditoría.
+     *
+     * @param drop      El drop a verificar.
+     * @param masterKey La clave maestra de la lluvia.
+     * @throws InvalidDropException si el drop es nulo, expirado o su MAC es incorrecto.
      */
     public static void verifyOrThrow(Drop drop, byte[] masterKey) {
         if (drop == null) {
@@ -177,7 +187,15 @@ public final class DropFactory {
 
     // ── Excepción tipada ────────────────────────────────────────────────
 
+    /**
+     * Excepcion lanzada cuando un drop es invalido (nulo, expirado o MAC incorrecto).
+     */
     public static class InvalidDropException extends RuntimeException {
+        /**
+         * Crea una nueva InvalidDropException con el mensaje dado.
+         *
+         * @param message  Descripcion del fallo de verificacion del drop.
+         */
         public InvalidDropException(String message) {
             super(message);
         }

@@ -20,6 +20,30 @@ import java.math.BigInteger;
 import java.util.HexFormat;
 import java.util.List;
 
+/**
+ * Serializador de drops a formato JSON para transporte y almacenamiento.
+ *
+ * <p>Utiliza Jackson ObjectMapper con modulos personalizados para:
+ * <ul>
+ *   <li>Serializar campos {@code byte[]} como cadenas hexadecimales.</li>
+ *   <li>Serializar {@code BigInteger} (coordenada y) como cadenas hexadecimales.</li>
+ *   <li>Deserializar objetos {@link Drop} desde JSON plano.</li>
+ * </ul>
+ *
+ * <p>Todos los metodos estaticos son thread-safe (el {@link ObjectMapper} subyacente
+ * es thread-safe una vez configurado).
+ *
+ * <p>Formato JSON de un Drop:
+ * <pre>{@code
+ * {
+ *   "id": "a1b2c3...",
+ *   "x": 1,
+ *   "y": "deadbeef...",
+ *   "mac": "1234abcd...",
+ *   "ttl": 1700000000
+ * }
+ * }</pre>
+ */
 public final class DropSerializer {
 
     private static final ObjectMapper MAPPER = createMapper();
@@ -60,6 +84,13 @@ public final class DropSerializer {
         return mapper;
     }
 
+    /**
+     * Serializa un drop a una cadena JSON.
+     *
+     * @param drop  El drop a serializar.
+     * @return      Representacion JSON del drop.
+     * @throws RuntimeException si ocurre un error durante la serializacion.
+     */
     public static String toJson(Drop drop) {
         try {
             return MAPPER.writeValueAsString(drop);
@@ -68,6 +99,13 @@ public final class DropSerializer {
         }
     }
 
+    /**
+     * Deserializa un drop desde una cadena JSON.
+     *
+     * @param json  Cadena JSON que representa un drop.
+     * @return      El objeto Drop deserializado.
+     * @throws RuntimeException si ocurre un error durante la deserializacion.
+     */
     public static Drop fromJson(String json) {
         try {
             return MAPPER.readValue(json, Drop.class);
@@ -76,6 +114,13 @@ public final class DropSerializer {
         }
     }
 
+    /**
+     * Serializa una lista de drops a una cadena JSON (array).
+     *
+     * @param drops  Lista de drops a serializar.
+     * @return       Representacion JSON del array de drops.
+     * @throws RuntimeException si ocurre un error durante la serializacion.
+     */
     public static String toJson(List<Drop> drops) {
         try {
             return MAPPER.writeValueAsString(drops);
@@ -84,6 +129,13 @@ public final class DropSerializer {
         }
     }
 
+    /**
+     * Deserializa una lista de drops desde una cadena JSON (array).
+     *
+     * @param json  Cadena JSON que representa un array de drops.
+     * @return      Lista de objetos Drop deserializados.
+     * @throws RuntimeException si ocurre un error durante la deserializacion.
+     */
     public static List<Drop> fromJsonList(String json) {
         try {
             JavaType type = MAPPER.getTypeFactory().constructCollectionType(List.class, Drop.class);

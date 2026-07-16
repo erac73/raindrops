@@ -30,7 +30,7 @@ import java.util.Map;
  * </ul>
  *
  * <p>El Rain Map siempre está cifrado con AES-256-GCM usando la masterKey.
- * Solo el poseedor de la masterKey puede descifrarlo y acceder a los drops.
+ * Solo el poseedor de la masterKey puede descifrarlo y acceder a los drops.</p>
  */
 public final class RainMap {
 
@@ -98,6 +98,12 @@ public final class RainMap {
 
     /**
      * Crea un Rain Map sin commitments (modo legacy, sin VSS).
+     *
+     * @param drops     Lista de drops a mapear.
+     * @param nodeUrls  URLs de los nodos Storage (mismo orden que drops).
+     * @param masterKey Clave maestra para cifrar (32 bytes).
+     * @param k         Umbral de reconstrucción.
+     * @return          Rain Map cifrado sin commitments.
      */
     public static RainMap create(List<Drop> drops, List<String> nodeUrls,
                                  byte[] masterKey, int k) {
@@ -191,6 +197,12 @@ public final class RainMap {
         return result;
     }
 
+    /**
+     * Descifra el Rain Map y retorna el índice de drops (dropId → nodeUrl).
+     *
+     * @param masterKey Clave maestra para descifrar (32 bytes).
+     * @return          Mapa con el índice de drops descifrado.
+     */
     public Map<String, String> unseal(byte[] masterKey) {
         byte[] jsonBytes = aesGcmDecrypt(masterKey, nonce, encryptedPayload);
         JsonNode root;
@@ -203,6 +215,13 @@ public final class RainMap {
                 new TypeReference<Map<String, String>>() {});
     }
 
+    /**
+     * Obtiene la URL del nodo Storage donde se almacena un drop específico.
+     *
+     * @param dropId identificador del drop (hexadecimal).
+     * @return       URL del nodo Storage que almacena el drop.
+     * @throws IllegalStateException si el RainMap no ha sido descifrado previamente.
+     */
     public String getNodeUrl(String dropId) {
         if (urlIndex == null) {
             throw new IllegalStateException("urlIndex not available");
@@ -227,10 +246,20 @@ public final class RainMap {
 
     // ── Getters ──────────────────────────────────────────────────────
 
+    /**
+     * Retorna el payload cifrado del RainMap (sin el nonce).
+     *
+     * @return copia del payload cifrado.
+     */
     public byte[] getEncryptedPayload() {
         return encryptedPayload.clone();
     }
 
+    /**
+     * Retorna el payload combinado: nonce(12B) ‖ ciphertext.
+     *
+     * @return payload combinado, o {@code null} si el RainMap no está cifrado.
+     */
     public byte[] getCombinedPayload() {
         if (nonce == null || encryptedPayload == null) return null;
         byte[] combined = new byte[NONCE_BYTES + encryptedPayload.length];
@@ -239,22 +268,47 @@ public final class RainMap {
         return combined;
     }
 
+    /**
+     * Retorna el nonce utilizado en el cifrado AES-GCM.
+     *
+     * @return copia del nonce (12 bytes).
+     */
     public byte[] getNonce() {
         return nonce.clone();
     }
 
+    /**
+     * Retorna el número total de shares (parámetro n).
+     *
+     * @return cantidad total de drops distribuidos.
+     */
     public int getN() {
         return n;
     }
 
+    /**
+     * Retorna el umbral mínimo de shares para reconstruir (parámetro k).
+     *
+     * @return umbral de reconstrucción.
+     */
     public int getK() {
         return k;
     }
 
+    /**
+     * Retorna los commitments de Feldman VSS asociados a este RainMap.
+     *
+     * @return lista de commitments BigInteger, o {@code null} si no hay VSS.
+     */
     public List<BigInteger> getCommitments() {
         return commitments;
     }
 
+    /**
+     * Indica si el RainMap tiene commitments de Feldman VSS.
+     *
+     * @return {@code true} si hay commitments válidos, {@code false} en caso contrario.
+     */
     public boolean hasCommitments() {
         return commitments != null && !commitments.isEmpty();
     }

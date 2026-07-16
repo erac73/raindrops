@@ -21,6 +21,16 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Servicio principal del nodo Witness.
+ *
+ * <p>Encargado de la verificación, almacenamiento y reconstrucción de drops
+ * en el sistema RainDrops. Actúa como punto de entrada para las operaciones
+ * de witnessed storage, delegando el persistido a los nodos Storage configurados.</p>
+ *
+ * <p>Uso típico: inyectar como bean de Spring y llamar a {@link #storeData},
+ * {@link #verifyDrop} o {@link #reconstruct} según la operación requerida.</p>
+ */
 @Service
 public class WitnessService {
 
@@ -30,6 +40,12 @@ public class WitnessService {
     private final ObjectMapper mapper;
     private final List<String> storageUrls;
 
+    /**
+     * Constructor del WitnessService.
+     *
+     * @param restClientBuilder builder para crear el RestClient HTTP.
+     * @param storageUrlsRaw    cadena CSV con las URLs de los nodos Storage configurados.
+     */
     public WitnessService(RestClient.Builder restClientBuilder,
                           @Value("${storage.urls:}") String storageUrlsRaw) {
         this.restClient = restClientBuilder.build();
@@ -38,6 +54,13 @@ public class WitnessService {
         log.info("Witness configured with storage nodes: {}", this.storageUrls);
     }
 
+    /**
+     * Verifica la validez de un drop individual.
+     *
+     * @param dropJson     representación JSON del drop a verificar.
+     * @param masterKeyHex clave maestra en formato hexadecimal para la verificación.
+     * @return resultado de la verificación con indicador de validez, mensaje descriptivo y lista de drops válidos.
+     */
     public VerifyResult verifyDrop(String dropJson, String masterKeyHex) {
         try {
             Drop drop = DropSerializer.fromJson(dropJson);
@@ -54,6 +77,17 @@ public class WitnessService {
         }
     }
 
+    /**
+     * Reconstruye el dato original a partir de un RainMap identificado por su ID.
+     *
+     * <p>Obtiene el RainMap del primer nodo Storage, descifra el índice de drops,
+     * recupera y verifica cada drop (incluyendo verificación VSS de Feldman si hay
+     * commitments), y finalmente reconstruye el dato con el algoritmo de Shamir.</p>
+     *
+     * @param rainMapId    identificador del RainMap a reconstruir (hex).
+     * @param masterKeyHex clave maestra en formato hexadecimal.
+     * @return resultado de la reconstrucción con los datos originales o información del error.
+     */
     public ReconstructResult reconstruct(String rainMapId, String masterKeyHex) {
         HexFormat hex = HexFormat.of();
         byte[] masterKey;
@@ -166,6 +200,18 @@ public class WitnessService {
         }
     }
 
+    /**
+     * Almacena datos dividiéndolos en drops distribuidos entre los nodos Storage.
+     *
+     * <p>Crea los drops con Shamir Secret Sharing, los distribuye a los nodos,
+     * genera el RainMap con las VSS commitments y lo almacena en el primer nodo.</p>
+     *
+     * @param data     datos originales a proteger.
+     * @param n        número total de shares a generar.
+     * @param k        umbral mínimo de shares para reconstruir.
+     * @param ttlDays  tiempo de vida de los drops en días.
+     * @return resultado del almacenamiento con el ID del RainMap y la clave maestra en hex.
+     */
     public StoreResult storeData(byte[] data, int n, int k, int ttlDays) {
         if (storageUrls.isEmpty()) {
             return new StoreResult(false, null, null);
@@ -244,7 +290,33 @@ public class WitnessService {
         return urls;
     }
 
+    /**
+     * Resultado de la verificación de un drop.
+     *
+     * @param valid  indica si el drop es válido.
+     * @param message mensaje descriptivo del resultado.
+     * @param drops  lista de drops verificados (vacía si falla).
+     */
     public record VerifyResult(boolean valid, String message, List<Drop> drops) {}
+
+    /**
+     * Resultado de la reconstrucción de datos.
+     *
+     * @param success  indica si la reconstrucción fue exitosa.
+     * @param message  mensaje descriptivo del resultado.
+     * @param data     datos reconstruidos (null si falla).
+     * @param badDrops lista de drops que fallaron la verificación.
+     * @param n        número total de shares del RainMap.
+     * @param k        umbral de reconstrucción del RainMap.
+     */
     public record ReconstructResult(boolean success, String message, byte[] data, List<String> badDrops, int n, int k) {}
+
+    /**
+     * Resultado del almacenamiento de datos.
+     *
+     * @param success      indica si el almacenamiento fue exitoso.
+     * @param rainMapId    identificador del RainMap creado (null si falla).
+     * @param masterKeyHex clave maestra generada en formato hexadecimal (null si falla).
+     */
     public record StoreResult(boolean success, String rainMapId, String masterKeyHex) {}
 }

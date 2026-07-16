@@ -16,6 +16,25 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controlador REST del nodo Storage.
+ *
+ * <p>Expone los endpoints HTTP para la gestión de drops, RainMaps y información
+ * de nodos peer. Este controlador actúa como la API pública del nodo Storage
+ * dentro del sistema distribuido RainDrops.</p>
+ *
+ * <p>Endpoints disponibles:</p>
+ * <ul>
+ *   <li>{@code POST /drops} — almacena un drop.</li>
+ *   <li>{@code GET /drops/{dropId}} — obtiene un drop por su ID.</li>
+ *   <li>{@code POST /rainmaps} — construye y almacena un RainMap a partir de drops.</li>
+ *   <li>{@code POST /rainmaps/external} — almacena un RainMap enviado externamente.</li>
+ *   <li>{@code GET /rainmaps/{rainMapId}} — obtiene un RainMap por su ID.</li>
+ *   <li>{@code PUT /rainmaps/{rainMapId}/ciphertext} — almacena el cifrado adicional de un RainMap.</li>
+ *   <li>{@code GET /peers} — lista los nodos peer configurados.</li>
+ *   <li>{@code GET /health} — endpoint de salud del servicio.</li>
+ * </ul>
+ */
 @RestController
 public class DropController {
 
@@ -25,6 +44,14 @@ public class DropController {
     private final PeerConfig peerConfig;
     private final String nodeId;
 
+    /**
+     * Constructor del DropController.
+     *
+     * @param dropService    servicio de lógica de negocio para drops.
+     * @param dropRepository repositorio JPA para la persistencia de drops.
+     * @param rainMapService servicio de gestión de RainMaps.
+     * @param peerConfig     configuración de nodos peer para la réplica.
+     */
     public DropController(DropService dropService, DropRepository dropRepository,
                           RainMapService rainMapService, PeerConfig peerConfig) {
         this.dropService = dropService;
@@ -34,12 +61,24 @@ public class DropController {
         this.nodeId = peerConfig.getNodeId();
     }
 
+    /**
+     * Almacena un drop en este nodo Storage.
+     *
+     * @param body representación JSON del drop a almacenar.
+     * @return respuesta HTTP con el ID del drop almacenado y el ID del nodo.
+     */
     @PostMapping("/drops")
     public ResponseEntity<Map<String, String>> storeDrop(@RequestBody String body) {
         String dropId = dropService.storeDrop(body);
         return ResponseEntity.ok(Map.of("dropId", dropId, "nodeId", nodeId));
     }
 
+    /**
+     * Obtiene un drop por su identificador.
+     *
+     * @param dropId identificador del drop a consultar.
+     * @return respuesta HTTP con el JSON del drop, o 404 si no existe.
+     */
     @GetMapping("/drops/{dropId}")
     public ResponseEntity<String> getDrop(@PathVariable String dropId) {
         String json = dropService.getDrop(dropId);
@@ -49,6 +88,13 @@ public class DropController {
         return ResponseEntity.ok(json);
     }
 
+    /**
+     * Construye un RainMap a partir de drops y lo almacena.
+     *
+     * @param body mapa con los campos {@code drops} (lista de JSON), {@code nodeUrls},
+     *             {@code masterKeyHex} y {@code k}.
+     * @return respuesta HTTP con el ID del RainMap, payload cifrado y parámetros n/k.
+     */
     @PostMapping("/rainmaps")
     public ResponseEntity<Map<String, Object>> buildAndStoreRainMap(@RequestBody Map<String, Object> body) {
         @SuppressWarnings("unchecked")
@@ -72,6 +118,12 @@ public class DropController {
         ));
     }
 
+    /**
+     * Almacena un RainMap enviado externamente (por el Witness u otro nodo).
+     *
+     * @param body mapa con los campos {@code rainMapId}, {@code encryptedPayloadHex}, {@code n} y {@code k}.
+     * @return respuesta HTTP con el ID del RainMap almacenado.
+     */
     @PostMapping("/rainmaps/external")
     public ResponseEntity<Map<String, String>> storeExternalRainMap(@RequestBody Map<String, Object> body) {
         String rainMapId = (String) body.get("rainMapId");
@@ -85,6 +137,12 @@ public class DropController {
         return ResponseEntity.ok(Map.of("rainMapId", rainMapId));
     }
 
+    /**
+     * Obtiene un RainMap por su identificador.
+     *
+     * @param rainMapId identificador del RainMap a consultar.
+     * @return respuesta HTTP con el JSON del RainMap, o 404 si no existe.
+     */
     @GetMapping("/rainmaps/{rainMapId}")
     public ResponseEntity<String> getRainMap(@PathVariable String rainMapId) {
         String json = rainMapService.getRainMap(rainMapId);
@@ -94,6 +152,13 @@ public class DropController {
         return ResponseEntity.ok(json);
     }
 
+    /**
+     * Almacena o actualiza el cifrado adicional de un RainMap.
+     *
+     * @param rainMapId identificador del RainMap a actualizar.
+     * @param body      mapa con el campo {@code ciphertextHex}.
+     * @return respuesta HTTP con el ID del RainMap actualizado.
+     */
     @PutMapping("/rainmaps/{rainMapId}/ciphertext")
     public ResponseEntity<Map<String, String>> storeCiphertext(
             @PathVariable String rainMapId, @RequestBody Map<String, Object> body) {
@@ -102,6 +167,11 @@ public class DropController {
         return ResponseEntity.ok(Map.of("rainMapId", rainMapId));
     }
 
+    /**
+     * Lista los nodos peer configurados para este nodo Storage.
+     *
+     * @return respuesta HTTP con el ID del nodo y la lista de URLs de sus peers.
+     */
     @GetMapping("/peers")
     public ResponseEntity<Map<String, Object>> getPeers() {
         return ResponseEntity.ok(Map.of(
@@ -110,6 +180,11 @@ public class DropController {
         ));
     }
 
+    /**
+     * Endpoint de salud del nodo Storage.
+     *
+     * @return respuesta HTTP con el estado, ID del nodo, cantidad de drops almacenados y lista de peers.
+     */
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         long count = dropRepository.count();

@@ -7,8 +7,19 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests unitarios para {@link FeldmanVSS}.
+ *
+ * <p>Verifica la generacion de commitments, la validacion de shares
+ * (validos y adulterados), la reconstruccion de secretos y el
+ * comportamiento ante parametros invalidos.
+ */
 class FeldmanVSSTest {
 
+    /**
+     * Verifica que los commitments se generan correctamente y todos
+     * los shares producidos por splitWithCoefficients pasan la verificacion.
+     */
     @Test
     void computeCommitments_andVerifyShares() {
         BigInteger secret = new BigInteger("12345678901234567890");
@@ -31,6 +42,10 @@ class FeldmanVSSTest {
         }
     }
 
+    /**
+     * Verifica que un share adulterado (y incrementado en 1) es rechazado
+     * por la verificacion de Feldman.
+     */
     @Test
     void verifyShare_rejectsTamperedShare() {
         BigInteger secret = BigInteger.TWO.pow(128);
@@ -47,6 +62,10 @@ class FeldmanVSSTest {
         assertFalse(FeldmanVSS.verifyShare(tampered[0].intValueExact(), tamperedY, commitments));
     }
 
+    /**
+     * Verifica que verifyShareOrThrow lanza InvalidShareException
+     * cuando el share es invalido.
+     */
     @Test
     void verifyShareOrThrow_throwsOnInvalidShare() {
         BigInteger secret = BigInteger.TWO.pow(128);
@@ -64,6 +83,10 @@ class FeldmanVSSTest {
             FeldmanVSS.verifyShareOrThrow(tampered[0].intValueExact(), tamperedY, commitments));
     }
 
+    /**
+     * Verifica que despues de validar todos los shares con VSS,
+     * la reconstruccion via ShamirSSS.combine() retorna el secreto original.
+     */
     @Test
     void reconstruct_afterVSS_returnsOriginalSecret() {
         BigInteger secret = BigInteger.TWO.pow(256).subtract(BigInteger.ONE);
@@ -88,6 +111,11 @@ class FeldmanVSSTest {
         assertEquals(secret, reconstructed);
     }
 
+    /**
+     * Verifica que cada invocacion de splitWithCoefficients produce
+     * commitments diferentes, y que los shares respectivos son validos
+     * unicamente con sus propios commitments.
+     */
     @Test
     void eachSplit_producesDifferentCommitments() {
         BigInteger secret = BigInteger.TWO.pow(128);
@@ -115,6 +143,10 @@ class FeldmanVSSTest {
         }
     }
 
+    /**
+     * Verifica que splitWithCoefficients lanza IllegalArgumentException
+     * cuando los parametros n y k son invalidos.
+     */
     @Test
     void invalidParams_throwException() {
         assertThrows(IllegalArgumentException.class, () ->
@@ -123,6 +155,9 @@ class FeldmanVSSTest {
             ShamirSSS.splitWithCoefficients(BigInteger.ONE, 1, 2));
     }
 
+    /**
+     * Verifica que una lista de commitments vacia o nula rechaza todos los shares.
+     */
     @Test
     void emptyCommitments_rejectsAll() {
         assertFalse(FeldmanVSS.verifyShare(1, BigInteger.ONE, List.of()));

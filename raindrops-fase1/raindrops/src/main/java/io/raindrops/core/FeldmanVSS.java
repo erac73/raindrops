@@ -82,6 +82,11 @@ public final class FeldmanVSS {
 
     /**
      * Verifica share y lanza excepcion si es invalido.
+     *
+     * @param x            Coordenada x del share (1-based).
+     * @param y            Coordenada y del share = f(x) mod p.
+     * @param commitments  Lista de commitments del dealer.
+     * @throws InvalidShareException si el share no es consistente con los commitments.
      */
     public static void verifyShareOrThrow(int x, BigInteger y, List<BigInteger> commitments) {
         if (!verifyShare(x, y, commitments)) {
@@ -92,7 +97,7 @@ public final class FeldmanVSS {
     }
 
     /**
-     * Verifica todos los shares de una lista.
+     * Verifica todos los shares de una lista y retorna solo los validos.
      *
      * @param shares       Lista de shares como BigInteger[]{x, y}.
      * @param commitments  Lista de commitments.
@@ -118,6 +123,9 @@ public final class FeldmanVSS {
     /**
      * Reconstruye el secreto desde K shares usando interpolacion de Lagrange.
      * Opera en GF(p) — exactamente igual que ShamirSSS.combine().
+     *
+     * @param shares  Lista de shares como BigInteger[]{x, y}.
+     * @return        El secreto reconstruido.
      */
     public static BigInteger combine(List<BigInteger[]> shares) {
         return ShamirSSS.combine(shares);
@@ -125,7 +133,15 @@ public final class FeldmanVSS {
 
     // ── Excepciones ───────────────────────────────────────────────────
 
+    /**
+     * Excepcion lanzada cuando un share no es validado por los commitments de Feldman.
+     */
     public static class InvalidShareException extends RuntimeException {
+        /**
+         * Crea una nueva InvalidShareException con el mensaje dado.
+         *
+         * @param message  Descripcion del fallo de verificacion.
+         */
         public InvalidShareException(String message) { super(message); }
     }
 }

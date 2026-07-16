@@ -205,7 +205,17 @@ public final class HybridScheme {
 
     // ── Excepción tipada ────────────────────────────────────────────────
 
+    /**
+     * Excepcion lanzada cuando ocurre un fallo en las operaciones criptograficas
+     * AES-256-GCM (cifrado o descifrado).
+     */
     public static class CryptoException extends RuntimeException {
+        /**
+         * Crea una nueva CryptoException con mensaje y causa original.
+         *
+         * @param message  Descripcion del fallo criptografico.
+         * @param cause    Excepcion original que provoco el fallo.
+         */
         public CryptoException(String message, Throwable cause) {
             super(message, cause);
         }

@@ -19,6 +19,25 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Cliente HTTP para interactuar con el sistema RainDrops.
+ *
+ * <p>Proporciona una interfaz sencilla para almacenar y recuperar datos
+ * distribuidos a través de los nodos Storage. Gestiona internamente la
+ * división de datos en drops, la creación del RainMap y la reconstrucción.</p>
+ *
+ * <p>Implementa {@link AutoCloseable} para gestión adecuada de recursos.
+ * Se recomienda usar con try-with-resources:</p>
+ * <pre>{@code
+ * try (RainClient client = new RainClient(nodeUrls)) {
+ *     String rainMapId = client.store(data, 5, 3, 30);
+ *     byte[] recovered = client.retrieve(rainMapId, masterKey);
+ * }
+ * }</pre>
+ *
+ * <p>Este cliente no es thread-safe. Cada instancia debe ser usada por un solo hilo
+ * a la vez, o sincronizarse externamente.</p>
+ */
 public final class RainClient implements AutoCloseable {
 
     private final HttpClient http;
@@ -26,6 +45,11 @@ public final class RainClient implements AutoCloseable {
     private final List<String> nodeUrls;
     private final HexFormat hex;
 
+    /**
+     * Crea un nuevo RainClient con la lista de nodos Storage.
+     *
+     * @param nodeUrls lista de URLs de los nodos Storage (al menos uno requerido).
+     */
     public RainClient(List<String> nodeUrls) {
         this.http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -35,6 +59,20 @@ public final class RainClient implements AutoCloseable {
         this.hex = HexFormat.of();
     }
 
+    /**
+     * Almacena datos distribuyéndolos entre los nodos Storage.
+     *
+     * <p>Divide los datos en n drops usando Shamir Secret Sharing, los distribuye
+     * entre los nodos, genera el RainMap con VSS commitments y lo almacena en
+     * el primer nodo.</p>
+     *
+     * @param data     datos originales a proteger.
+     * @param n        número total de shares a generar.
+     * @param k        umbral mínimo de shares para reconstruir.
+     * @param ttlDays  tiempo de vida de los drops en días.
+     * @return identificador del RainMap creado (hexadecimal).
+     * @throws Exception si ocurre un error durante la comunicación HTTP o el procesamiento.
+     */
     public String store(byte[] data, int n, int k, int ttlDays) throws Exception {
         RainDropsCore.RainResult result = RainDropsCore.drop(data, n, k, ttlDays);
         List<Drop> drops = result.getDrops();
@@ -94,6 +132,19 @@ public final class RainClient implements AutoCloseable {
         return rainMapId;
     }
 
+    /**
+     * Recupera y reconstruye los datos originales a partir de un RainMap.
+     *
+     * <p>Obtiene el RainMap del primer nodo, descifra el índice de drops,
+     * recupera cada drop verificando VSS si hay commitments, y reconstruye
+     * el dato original con el umbral k.</p>
+     *
+     * @param rainMapId identificador del RainMap a recuperar (hexadecimal).
+     * @param masterKey clave maestra para descifrar el RainMap (32 bytes).
+     * @return datos originales reconstruidos.
+     * @throws RuntimeException si no se encuentra el RainMap o no hay suficientes shares válidos.
+     * @throws Exception         si ocurre un error durante la comunicación HTTP.
+     */
     public byte[] retrieve(String rainMapId, byte[] masterKey) throws Exception {
         String rainMapUrl = nodeUrls.get(0) + "/rainmaps/" + rainMapId;
         HttpRequest rainReq = HttpRequest.newBuilder()
@@ -158,6 +209,9 @@ public final class RainClient implements AutoCloseable {
         return RainDropsCore.reconstruct(drops, masterKey, ciphertext, k, directMode, commitments);
     }
 
+    /**
+     * Cierra el cliente y libera los recursos HTTP asociados.
+     */
     @Override
     public void close() {
     }

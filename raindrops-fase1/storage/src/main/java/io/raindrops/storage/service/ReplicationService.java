@@ -17,6 +17,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
 
+/**
+ * Servicio de réplica de datos entre nodos Storage peer.
+ *
+ * <p>Encargado de replicar drops y RainMaps de forma asíncrona a los nodos peer
+ * configurados. Utiliza un pool de hilos fijo de 4 threads para ejecutar las
+ * réplicas en paralelo, sin bloquear la operación principal.</p>
+ *
+ * <p>Si la réplica a un peer falla, se registra un warning pero no se propaga
+ * la excepción (fire-and-forget). Las llamadas a los peers incluyen autenticación
+ * mediante header {@code X-API-Key} si está configurado.</p>
+ *
+ * <p>No es thread-safe en cuanto a la configuración de peers (se espera que
+ * {@link PeerConfig} sea inmutable), pero las operaciones de réplica en sí
+ * son seguras para concurrencia.</p>
+ */
 @Service
 public class ReplicationService {
 
@@ -28,6 +43,13 @@ public class ReplicationService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final String apiKey;
 
+    /**
+     * Constructor del ReplicationService.
+     *
+     * @param peerConfig       configuración de nodos peer con sus URLs.
+     * @param restClientBuilder builder para crear el RestClient HTTP.
+     * @param apiKey           clave de API para autenticación con los peers (puede estar vacía).
+     */
     public ReplicationService(PeerConfig peerConfig, RestClient.Builder restClientBuilder,
                               @Value("${API_KEY:}") String apiKey) {
         this.peerConfig = peerConfig;
@@ -44,6 +66,16 @@ public class ReplicationService {
         }
     }
 
+    /**
+     * Replicá un drop de forma asíncrona a todos los nodos peer configurados.
+     *
+     * <p>Cada réplica se ejecuta en el pool de hilos de forma independiente.
+     * Si la réplica a un peer falla, se registra un warning pero no se
+     * interrumpe la réplica a los demás peers.</p>
+     *
+     * @param dropId identificador del drop a replicar.
+     * @param body   representación JSON del drop a enviar.
+     */
     public void replicateDrop(String dropId, String body) {
         for (String peer : peerConfig.getPeerUrls()) {
             CompletableFuture.runAsync(() -> {
@@ -61,6 +93,19 @@ public class ReplicationService {
         }
     }
 
+    /**
+     * Replicá un RainMap de forma asíncrona a todos los nodos peer configurados.
+     *
+     * <p>Envía el payload cifrado del RainMap junto con sus parámetros n, k
+     * y el cifrado adicional (si existe) a cada peer vía el endpoint
+     * {@code /rainmaps/external}.</p>
+     *
+     * @param rainMapId        identificador del RainMap a replicar.
+     * @param encryptedPayload payload cifrado del RainMap.
+     * @param n                número total de shares.
+     * @param k                umbral de reconstrucción.
+     * @param ciphertextHex    cifrado adicional en hexadecimal (puede ser null).
+     */
     public void replicateRainMap(String rainMapId, byte[] encryptedPayload, int n, int k, String ciphertextHex) {
         HexFormat hex = HexFormat.of();
         Map<String, Object> body = new LinkedHashMap<>();
@@ -91,6 +136,15 @@ public class ReplicationService {
         }
     }
 
+    /**
+     * Intenta obtener un drop de los nodos peer configurados.
+     *
+     * <p>Recorre los peers en orden y retorna el primer drop encontrado.
+     * Utilizado cuando un drop no está disponible en el nodo local.</p>
+     *
+     * @param dropId identificador del drop a buscar.
+     * @return representación JSON del drop encontrado, o {@code null} si ningún peer lo tiene.
+     */
     public String tryFetchFromPeers(String dropId) {
         for (String peer : peerConfig.getPeerUrls()) {
             try {
