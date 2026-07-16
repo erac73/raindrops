@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.raindrops.core.Drop;
 import io.raindrops.core.DropSerializer;
+import io.raindrops.core.FeldmanVSS;
 import io.raindrops.core.RainDropsCore;
 import io.raindrops.core.RainMap;
 
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -38,6 +40,7 @@ public final class RainClient implements AutoCloseable {
         List<Drop> drops = result.getDrops();
         byte[] masterKey = result.getMasterKey();
         byte[] ciphertext = result.getCiphertext();
+        List<BigInteger> commitments = result.getCommitments();
 
         List<String> dropJsons = drops.stream().map(DropSerializer::toJson).toList();
         List<String> usedUrls = new ArrayList<>();
@@ -54,7 +57,8 @@ public final class RainClient implements AutoCloseable {
             http.send(req, HttpResponse.BodyHandlers.ofString());
         }
 
-        RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k);
+        // Pass VSS commitments to RainMap
+        RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k, commitments);
         String rainMapId = hex.formatHex(drops.get(0).getId());
         String payloadHex = hex.formatHex(rainMap.getCombinedPayload());
 
@@ -113,6 +117,10 @@ public final class RainClient implements AutoCloseable {
         byte[] ciphertext = ctHex != null ? hex.parseHex(ctHex) : null;
 
         RainMap rainMap = RainMap.fromEncrypted(encryptedPayload, masterKey);
+
+        // Extract VSS commitments from RainMap
+        List<BigInteger> commitments = rainMap.getCommitments();
+
         Map<String, String> index = rainMap.unseal(masterKey);
 
         List<Drop> drops = new ArrayList<>();
@@ -127,16 +135,27 @@ public final class RainClient implements AutoCloseable {
             HttpResponse<String> dropResp = http.send(dropReq, HttpResponse.BodyHandlers.ofString());
             if (dropResp.statusCode() == 200) {
                 Drop drop = DropSerializer.fromJson(dropResp.body());
+
+                // Verify VSS share against commitments
+                if (commitments != null && !commitments.isEmpty()) {
+                    try {
+                        FeldmanVSS.verifyShareOrThrow(drop.getX(), drop.getY(), commitments);
+                    } catch (FeldmanVSS.InvalidShareException e) {
+                        // Skip invalid shares
+                        continue;
+                    }
+                }
+
                 drops.add(drop);
                 if (drops.size() >= k) break;
             }
         }
 
         if (drops.size() < k) {
-            throw new RuntimeException("Not enough shares: " + drops.size() + "/" + k);
+            throw new RuntimeException("Not enough valid shares: " + drops.size() + "/" + k);
         }
 
-        return RainDropsCore.reconstruct(drops, masterKey, ciphertext, k, directMode);
+        return RainDropsCore.reconstruct(drops, masterKey, ciphertext, k, directMode, commitments);
     }
 
     @Override

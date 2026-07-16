@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -103,6 +104,9 @@ public class WitnessService {
             return new ReconstructResult(false, "Failed to unseal RainMap: " + e.getMessage(), null, List.of(), n, k);
         }
 
+        // Extract VSS commitments from RainMap
+        List<BigInteger> commitments = rainMap.getCommitments();
+
         Map<String, String> index = rainMap.unseal(masterKey);
         List<Drop> verifiedDrops = new ArrayList<>();
         List<String> badDrops = new ArrayList<>();
@@ -125,6 +129,18 @@ public class WitnessService {
                 Drop drop = DropSerializer.fromJson(dropJson);
                 try {
                     DropFactory.verifyOrThrow(drop, masterKey);
+
+                    // Verify VSS share against commitments
+                    if (commitments != null && !commitments.isEmpty()) {
+                        try {
+                            io.raindrops.core.FeldmanVSS.verifyShareOrThrow(
+                                drop.getX(), drop.getY(), commitments);
+                        } catch (io.raindrops.core.FeldmanVSS.InvalidShareException e) {
+                            badDrops.add(dropId + ": VSS verification failed - " + e.getMessage());
+                            continue;
+                        }
+                    }
+
                     verifiedDrops.add(drop);
                 } catch (DropFactory.InvalidDropException e) {
                     badDrops.add(dropId + ": " + e.getMessage());
@@ -143,7 +159,7 @@ public class WitnessService {
         }
 
         try {
-            byte[] data = RainDropsCore.reconstruct(verifiedDrops, masterKey, ciphertext, k, directMode);
+            byte[] data = RainDropsCore.reconstruct(verifiedDrops, masterKey, ciphertext, k, directMode, commitments);
             return new ReconstructResult(true, "Reconstruction successful", data, badDrops, n, k);
         } catch (Exception e) {
             return new ReconstructResult(false, "Reconstruction failed: " + e.getMessage(), null, badDrops, n, k);
@@ -160,6 +176,7 @@ public class WitnessService {
             List<Drop> drops = result.getDrops();
             byte[] masterKey = result.getMasterKey();
             byte[] ciphertext = result.getCiphertext();
+            List<BigInteger> commitments = result.getCommitments();
 
             List<String> dropJsons = drops.stream().map(DropSerializer::toJson).toList();
             List<String> usedUrls = new ArrayList<>();
@@ -176,7 +193,8 @@ public class WitnessService {
                     .toBodilessEntity();
             }
 
-            RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k);
+            // Pass VSS commitments to RainMap
+            RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k, commitments);
             String rainMapId = hex.formatHex(drops.get(0).getId());
             String payloadHex = hex.formatHex(rainMap.getCombinedPayload());
             log.debug("[DEBUG-STORE] payloadHex len: {} first40: {}", payloadHex.length(), "***");
