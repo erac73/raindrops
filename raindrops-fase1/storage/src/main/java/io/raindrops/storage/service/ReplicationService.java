@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
 
 @Service
@@ -23,13 +24,17 @@ public class ReplicationService {
 
     private final PeerConfig peerConfig;
     private final RestClient restClient;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final String apiKey;
 
     public ReplicationService(PeerConfig peerConfig, RestClient.Builder restClientBuilder,
                               @Value("${API_KEY:}") String apiKey) {
         this.peerConfig = peerConfig;
-        this.restClient = restClientBuilder.build();
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(5000);
+        this.restClient = restClientBuilder.requestFactory(factory).build();
         this.apiKey = apiKey;
     }
 
@@ -67,8 +72,6 @@ public class ReplicationService {
             body.put("ciphertextHex", ciphertextHex);
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-
         for (String peer : peerConfig.getPeerUrls()) {
             CompletableFuture.runAsync(() -> {
                 try {
@@ -77,7 +80,7 @@ public class ReplicationService {
                     var req = restClient.post()
                         .uri(url)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(mapper.writeValueAsString(body));
+                        .body(MAPPER.writeValueAsString(body));
                     addAuth(req);
                     req.retrieve().toBodilessEntity();
                     log.info("Replicated RainMap {} to {}", rainMapId, url);

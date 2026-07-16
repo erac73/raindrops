@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.security.MessageDigest;
 
 public class ApiKeyFilter extends OncePerRequestFilter {
 
@@ -21,7 +22,7 @@ public class ApiKeyFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String providedKey = request.getHeader("X-API-Key");
 
-        if (providedKey != null && providedKey.equals(expectedApiKey)) {
+        if (providedKey != null && MessageDigest.isEqual(providedKey.getBytes(java.nio.charset.StandardCharsets.UTF_8), expectedApiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
             filterChain.doFilter(request, response);
             return;
         }

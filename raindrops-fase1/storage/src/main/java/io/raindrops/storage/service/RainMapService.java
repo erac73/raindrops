@@ -83,10 +83,10 @@ public class RainMapService {
             + "\"}";
     }
 
-    public static BuildRainMapResult buildRainMap(List<String> dropJsons, List<String> nodeUrls, byte[] masterKey) {
+    public static BuildRainMapResult buildRainMap(List<String> dropJsons, List<String> nodeUrls, byte[] masterKey, int k) {
         HexFormat hex = HexFormat.of();
         List<Drop> drops = dropJsons.stream().map(DropSerializer::fromJson).toList();
-        RainMap rainMap = RainMap.create(drops, nodeUrls, masterKey);
+        RainMap rainMap = RainMap.create(drops, nodeUrls, masterKey, k);
         String rainMapId = hex.formatHex(drops.get(0).getId());
         return new BuildRainMapResult(rainMapId, rainMap.getCombinedPayload(), rainMap.getN(), rainMap.getK());
     }

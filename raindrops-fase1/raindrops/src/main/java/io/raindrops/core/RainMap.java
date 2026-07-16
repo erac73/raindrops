@@ -42,7 +42,7 @@ public final class RainMap {
         this.k = k;
     }
 
-    public static RainMap create(List<Drop> drops, List<String> nodeUrls, byte[] masterKey) {
+    public static RainMap create(List<Drop> drops, List<String> nodeUrls, byte[] masterKey, int k) {
         if (drops.size() != nodeUrls.size()) {
             throw new IllegalArgumentException("drops and nodeUrls must have same size");
         }
@@ -57,7 +57,9 @@ public final class RainMap {
         }
 
         int n = nodeUrls.size();
-        int k = n;
+        if (k < 1 || k > n) {
+            throw new IllegalArgumentException("k must be between 1 and " + n);
+        }
 
         RainMap map = new RainMap(index, null, null, n, k);
         map.seal(masterKey);

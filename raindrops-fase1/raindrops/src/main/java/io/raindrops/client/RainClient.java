@@ -54,7 +54,7 @@ public final class RainClient implements AutoCloseable {
             http.send(req, HttpResponse.BodyHandlers.ofString());
         }
 
-        RainMap rainMap = RainMap.create(drops, usedUrls, masterKey);
+        RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k);
         String rainMapId = hex.formatHex(drops.get(0).getId());
         String payloadHex = hex.formatHex(rainMap.getCombinedPayload());
 

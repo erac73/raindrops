@@ -86,15 +86,19 @@ public class WitnessService {
         }
 
         String encryptedPayloadHex = (String) rainMapData.get("encryptedPayloadHex");
+        log.debug("[DEBUG-RECON] masterKey hex: {}", "***");
+        log.debug("[DEBUG-RECON] encryptedPayloadHex len: {}", encryptedPayloadHex != null ? encryptedPayloadHex.length() : 0);
         int n = (int) rainMapData.get("n");
         int k = (int) rainMapData.get("k");
         boolean directMode = rainMapData.containsKey("directMode") && (boolean) rainMapData.get("directMode");
         String ctHex = (String) rainMapData.get("ciphertextHex");
         byte[] ciphertext = ctHex != null ? hex.parseHex(ctHex) : null;
 
+        byte[] combinedPayload = hex.parseHex(encryptedPayloadHex);
+        log.debug("[DEBUG-RECON] combinedPayload len: {} hex first24: {}", combinedPayload.length, "***");
         RainMap rainMap;
         try {
-            rainMap = RainMap.fromEncrypted(hex.parseHex(encryptedPayloadHex), masterKey);
+            rainMap = RainMap.fromEncrypted(combinedPayload, masterKey);
         } catch (Exception e) {
             return new ReconstructResult(false, "Failed to unseal RainMap: " + e.getMessage(), null, List.of(), n, k);
         }
@@ -172,9 +176,10 @@ public class WitnessService {
                     .toBodilessEntity();
             }
 
-            RainMap rainMap = RainMap.create(drops, usedUrls, masterKey);
+            RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k);
             String rainMapId = hex.formatHex(drops.get(0).getId());
             String payloadHex = hex.formatHex(rainMap.getCombinedPayload());
+            log.debug("[DEBUG-STORE] payloadHex len: {} first40: {}", payloadHex.length(), "***");
 
             Map<String, Object> body = Map.of(
                 "rainMapId", rainMapId,
@@ -189,6 +194,7 @@ public class WitnessService {
                 .body(mapper.writeValueAsString(body))
                 .retrieve()
                 .toBodilessEntity();
+            log.debug("[DEBUG-STORE] POST to {}/rainmaps/external OK", usedUrls.get(0));
 
             if (ciphertext != null) {
                 Map<String, Object> ctBody = Map.of(

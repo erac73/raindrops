@@ -1,35 +1,115 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Rain Drops — Docker Compose (Fase 1)
+# ═══════════════════════════════════════════════════════════════════════
+#
+# Arquitectura desplegada:
+#
+#   ┌─────────────────────────────────────────────────────────┐
+#   │                    rain-net (bridge)                    │
+#   │                                                         │
+#   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
+#   │  │ witness-node │  │ storage-node │  │ storage-node │ │
+#   │  │  (orquesta)  │  │     -1       │  │     -2       │ │
+#   │  │  :9080→8080  │  │  :9081→8080  │  │  :9082→8080  │ │
+#   │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘ │
+#   │         │                  │                  │         │
+#   │         │    ┌──────────────┐                  │         │
+#   │         │    │ storage-node │                  │         │
+#   │         │    │     -3       │                  │         │
+#   │         │    │  :9083→8080  │                  │         │
+#   │         │    └──────────────┘                  │         │
+#   │         │                                      │         │
+#   │  ┌──────┴───────┐                              │         │
+#   │  │    docs      │                              │         │
+#   │  │  (nginx)     │                              │         │
+#   │  │  :8089→80    │                              │         │
+#   │  └──────────────┘                              │         │
+#   └─────────────────────────────────────────────────────────┘
+#
+# Red externa:
+#   Puerto 9080 → Witness Node (orquestador)
+#   Puerto 9081 → Storage Node 1 (keeper-1)
+#   Puerto 9082 → Storage Node 2 (keeper-2)
+#   Puerto 9083 → Storage Node 3 (keeper-3)
+#   Puerto 8089 → Documentación (nginx)
+#
+# Variables de entorno:
+#   API_KEY — Clave para autenticación entre nodos (opcional, sin ella todo es abierto)
+#
+# ═══════════════════════════════════════════════════════════════════════
+
 networks:
   rain-net:
     driver: bridge
+    # Red Docker interna. Los nodos se comunican por nombre de servicio
+    # (ej: http://keeper-1:8080). Los aliases facilitan la identificación.
 
 volumes:
   storage-1-data:
   storage-2-data:
   storage-3-data:
+  # Volúmenes Docker para persistir la base de datos H2 de cada storage node.
+  # Cada nodo tiene su propia BD independiente (no compartida).
 
 services:
+  # ─────────────────────────────────────────────────────────────────────
+  # WITNESS NODE — Orquestador central
+  # ─────────────────────────────────────────────────────────────────────
+  # El witness es el punto de entrada único para store/reconstruct.
+  # No almacena drops — solo coordina la distribución y reconstrucción.
+  #
+  # Endpoints:
+  #   POST /witness/store      — Almacenar datos (data base64 → rainMapId)
+  #   POST /witness/reconstruct — Recuperar datos (rainMapId → data base64)
+  #   POST /witness/verify      — Verificar un drop
+  #   GET  /health              — Health check
+  #
+  # El witness se comunica con los storage nodes via HTTP interno (rain-net).
   witness-node:
     build:
       context: .
       dockerfile: Dockerfile.witness
     container_name: raindrops-witness
     ports:
-      - "9080:8080"
+      - "9080:8080"   # Exponer puerto 9080 al host
     environment:
       - WITNESS_PORT=8080
       - STORAGE_URLS=http://keeper-1:8080,http://keeper-2:8080,http://keeper-3:8080
+      # STORAGE_URLS: Lista de URLs de los storage nodes (separadas por coma).
+      # El witness usa estas URLs para enviar/recibir drops y RainMaps.
       - API_KEY=${API_KEY:-}
+      # API_KEY: Si se establece, los storage nodes requerirán este header
+      # X-API-Key en cada petición. Si no se establece, todo es abierto.
     networks:
       rain-net:
         aliases:
           - witness
+          # Alias DNS para que otros nodos lo encuentren como "witness"
     restart: unless-stopped
     healthcheck:
       test: wget -qO- http://localhost:8080/health || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
+    # Dependencias: witness-node inicia después de los storage nodes.
+    # En fases posteriores, se puede añadir depends_on con condition: service_healthy.
 
+  # ─────────────────────────────────────────────────────────────────────
+  # STORAGE NODE 1 (keeper-1)
+  # ─────────────────────────────────────────────────────────────────────
+  # Almacena drops (shares SSS) y RainMaps (índices cifrados).
+  # Se replica con keeper-2 y keeper-3 (peer-to-peer).
+  #
+  # Endpoints:
+  #   POST /drops              — Almacenar un drop
+  #   GET  /drops/{dropId}     — Recuperar un drop
+  #   POST /rainmaps           — Crear y almacenar RainMap
+  #   POST /rainmaps/external  — Almacenar RainMap externo (ya cifrado)
+  #   GET  /rainmaps/{id}      — Recuperar RainMap
+  #   PUT  /rainmaps/{id}/ciphertext — Almacenar ciphertext separado
+  #   GET  /peers              — Listar peers
+  #   GET  /health             — Health check con métricas
+  #   GET  /h2-console         — Consola H2 (solo desarrollo)
   storage-node-1:
     build:
       context: .
@@ -40,10 +120,13 @@ services:
     environment:
       - NODE_ID=keeper-1
       - PEER_URLS=http://keeper-2:8080,http://keeper-3:8080
+      # PEER_URLS: Nodos con los que se replica (no incluye a sí mismo).
       - SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/storage-db;DB_CLOSE_DELAY=-1
+      # BD H2 persistida en el volumen Docker.
       - API_KEY=${API_KEY:-}
     volumes:
       - storage-1-data:/app/data
+      # Persistencia de la BD H2. Si el contenedor muere, los datos sobreviven.
     networks:
       rain-net:
         aliases:
@@ -55,6 +138,10 @@ services:
       timeout: 10s
       retries: 5
 
+  # ─────────────────────────────────────────────────────────────────────
+  # STORAGE NODE 2 (keeper-2)
+  # ─────────────────────────────────────────────────────────────────────
+  # Mismas funcionalidades que keeper-1. Se replica con keeper-1 y keeper-3.
   storage-node-2:
     build:
       context: .
@@ -80,6 +167,10 @@ services:
       timeout: 10s
       retries: 5
 
+  # ─────────────────────────────────────────────────────────────────────
+  # STORAGE NODE 3 (keeper-3)
+  # ─────────────────────────────────────────────────────────────────────
+  # Tercer nodo de almacenamiento. Completa el cluster mínimo de 3 nodos.
   storage-node-3:
     build:
       context: .
@@ -105,6 +196,11 @@ services:
       timeout: 10s
       retries: 5
 
+  # ─────────────────────────────────────────────────────────────────────
+  # DOCUMENTACIÓN (nginx)
+  # ─────────────────────────────────────────────────────────────────────
+  # Sirve los archivos estáticos de docs/ (README, demo interactiva, etc.).
+  # No forma parte de la red rain-net — solo expone archivos estáticos.
   docs:
     image: nginx:alpine
     container_name: raindrops-docs

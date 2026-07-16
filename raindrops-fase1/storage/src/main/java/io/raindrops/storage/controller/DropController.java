@@ -56,11 +56,12 @@ public class DropController {
         @SuppressWarnings("unchecked")
         List<String> nodeUrls = (List<String>) body.get("nodeUrls");
         String masterKeyHex = (String) body.get("masterKeyHex");
+        int k = ((Number) body.get("k")).intValue();
 
         java.util.HexFormat hex = java.util.HexFormat.of();
         byte[] masterKey = hex.parseHex(masterKeyHex);
 
-        RainMapService.BuildRainMapResult result = RainMapService.buildRainMap(dropJsons, nodeUrls, masterKey);
+        RainMapService.BuildRainMapResult result = RainMapService.buildRainMap(dropJsons, nodeUrls, masterKey, k);
         rainMapService.storeRainMap(result.rainMapId(), result.encryptedPayload(), result.n(), result.k(), null);
 
         return ResponseEntity.ok(Map.of(
