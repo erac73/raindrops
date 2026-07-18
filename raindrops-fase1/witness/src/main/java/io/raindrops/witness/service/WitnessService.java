@@ -121,8 +121,7 @@ public class WitnessService {
         }
 
         String encryptedPayloadHex = (String) rainMapData.get("encryptedPayloadHex");
-        log.debug("[DEBUG-RECON] masterKey hex: {}", "***");
-        log.debug("[DEBUG-RECON] encryptedPayloadHex len: {}", encryptedPayloadHex != null ? encryptedPayloadHex.length() : 0);
+        log.debug("Reconstruct RainMap {} - payload size: {} chars", rainMapId, encryptedPayloadHex != null ? encryptedPayloadHex.length() : 0);
         int n = (int) rainMapData.get("n");
         int k = (int) rainMapData.get("k");
         boolean directMode = rainMapData.containsKey("directMode") && (boolean) rainMapData.get("directMode");
@@ -130,7 +129,7 @@ public class WitnessService {
         byte[] ciphertext = ctHex != null ? hex.parseHex(ctHex) : null;
 
         byte[] combinedPayload = hex.parseHex(encryptedPayloadHex);
-        log.debug("[DEBUG-RECON] combinedPayload len: {} hex first24: {}", combinedPayload.length, "***");
+        log.debug("Combined payload decoded: {} bytes", combinedPayload.length);
         RainMap rainMap;
         try {
             rainMap = RainMap.fromEncrypted(combinedPayload, masterKey);
@@ -243,7 +242,7 @@ public class WitnessService {
             RainMap rainMap = RainMap.create(drops, usedUrls, masterKey, k, commitments);
             String rainMapId = hex.formatHex(drops.get(0).getId());
             String payloadHex = hex.formatHex(rainMap.getCombinedPayload());
-            log.debug("[DEBUG-STORE] payloadHex len: {} first40: {}", payloadHex.length(), "***");
+            log.debug("RainMap payload size: {} bytes", rainMap.getCombinedPayload().length);
 
             Map<String, Object> body = Map.of(
                 "rainMapId", rainMapId,
@@ -258,7 +257,7 @@ public class WitnessService {
                 .body(mapper.writeValueAsString(body))
                 .retrieve()
                 .toBodilessEntity();
-            log.debug("[DEBUG-STORE] POST to {}/rainmaps/external OK", usedUrls.get(0));
+            log.debug("Stored RainMap at {}/rainmaps/external", usedUrls.get(0));
 
             if (ciphertext != null) {
                 Map<String, Object> ctBody = Map.of(

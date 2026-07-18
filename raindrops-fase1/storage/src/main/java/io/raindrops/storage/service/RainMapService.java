@@ -1,5 +1,6 @@
 package io.raindrops.storage.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.raindrops.core.Drop;
 import io.raindrops.core.DropSerializer;
 import io.raindrops.core.RainDropsCore;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +38,7 @@ public class RainMapService {
 
     private final RainMapRepository rainMapRepository;
     private final ReplicationService replicationService;
+    private final ObjectMapper mapper;
     private final String nodeId;
 
     /**
@@ -42,13 +46,16 @@ public class RainMapService {
      *
      * @param rainMapRepository repositorio JPA para la persistencia de RainMaps.
      * @param replicationService servicio de réplica a nodos peer.
+     * @param mapper            ObjectMapper compartido para serialización JSON.
      * @param nodeId            identificador único de este nodo Storage.
      */
     public RainMapService(RainMapRepository rainMapRepository,
                           ReplicationService replicationService,
+                          ObjectMapper mapper,
                           @Value("${NODE_ID:storage-node}") String nodeId) {
         this.rainMapRepository = rainMapRepository;
         this.replicationService = replicationService;
+        this.mapper = mapper;
         this.nodeId = nodeId;
     }
 
@@ -113,15 +120,20 @@ public class RainMapService {
             return null;
         }
         RainMapEntity entity = opt.get();
-        boolean hasCiphertext = entity.getCiphertextHex() != null && !entity.getCiphertextHex().isBlank();
-        return "{\"rainMapId\":\"" + entity.getRainMapId()
-            + "\",\"encryptedPayloadHex\":\"" + entity.getEncryptedPayloadHex()
-            + "\",\"n\":" + entity.getN()
-            + ",\"k\":" + entity.getK()
-            + ",\"directMode\":" + !hasCiphertext
-            + ",\"ciphertextHex\":" + (hasCiphertext ? "\"" + entity.getCiphertextHex() + "\"" : "null")
-            + ",\"nodeId\":\"" + entity.getNodeId()
-            + "\"}";
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("rainMapId", entity.getRainMapId());
+            body.put("encryptedPayloadHex", entity.getEncryptedPayloadHex());
+            body.put("n", entity.getN());
+            body.put("k", entity.getK());
+            body.put("directMode", entity.getCiphertextHex() == null || entity.getCiphertextHex().isBlank());
+            body.put("ciphertextHex", entity.getCiphertextHex());
+            body.put("nodeId", entity.getNodeId());
+            return mapper.writeValueAsString(body);
+        } catch (Exception e) {
+            log.error("Error serializing RainMap {}", rainMapId, e);
+            return null;
+        }
     }
 
     /**

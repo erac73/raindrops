@@ -1,6 +1,11 @@
 package io.raindrops.witness.config;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -20,6 +25,35 @@ public class WitnessRateLimitConfig implements WebMvcConfigurer {
     private static final Logger log = LoggerFactory.getLogger(WitnessRateLimitConfig.class);
 
     private final ConcurrentHashMap<String, RateBucket> buckets = new ConcurrentHashMap<>();
+
+    private static final long BUCKET_MAX_AGE_MS = 5 * 60 * 1000;
+
+    private final ScheduledExecutorService cleanupScheduler =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "witness-rate-limit-cleanup");
+                t.setDaemon(true);
+                return t;
+            });
+
+    {
+        cleanupScheduler.scheduleAtFixedRate(this::cleanupOldBuckets, 60, 60, TimeUnit.SECONDS);
+    }
+
+    void cleanupOldBuckets() {
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<String, RateBucket>> it = buckets.entrySet().iterator();
+        int removed = 0;
+        while (it.hasNext()) {
+            Map.Entry<String, RateBucket> entry = it.next();
+            if (now - entry.getValue().getLastAccess() > BUCKET_MAX_AGE_MS) {
+                it.remove();
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            log.debug("Cleaned up {} expired rate-limit buckets", removed);
+        }
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -71,15 +105,18 @@ public class WitnessRateLimitConfig implements WebMvcConfigurer {
         private final int maxTokens;
         private final AtomicInteger tokens;
         private final AtomicLong lastRefill;
+        private final AtomicLong lastAccess;
         private final long refillIntervalMs = 60_000; // 1 minute
 
         RateBucket(int maxTokens) {
             this.maxTokens = maxTokens;
             this.tokens = new AtomicInteger(maxTokens);
             this.lastRefill = new AtomicLong(System.currentTimeMillis());
+            this.lastAccess = new AtomicLong(System.currentTimeMillis());
         }
 
         boolean tryConsume() {
+            lastAccess.set(System.currentTimeMillis());
             refillIfNeeded();
             int current = tokens.get();
             while (current > 0) {
@@ -89,6 +126,10 @@ public class WitnessRateLimitConfig implements WebMvcConfigurer {
                 current = tokens.get();
             }
             return false;
+        }
+
+        long getLastAccess() {
+            return lastAccess.get();
         }
 
         int getResetTime() {

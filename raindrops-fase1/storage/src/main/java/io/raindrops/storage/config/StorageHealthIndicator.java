@@ -22,7 +22,7 @@ public class StorageHealthIndicator implements HealthIndicator {
         try {
             MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
             RuntimeMXBean runtimeBean = ManagementFactory.getRuntimeMXBean();
-            FileStore store = Paths.get(".").toRealPath().getFileSystem().getFileStores().iterator().next();
+            FileStore store = Paths.get("/app/data").toRealPath().getFileSystem().getFileStores().iterator().next();
 
             long usedMemory = memoryBean.getHeapMemoryUsage().getUsed() / (1024 * 1024);
             long maxMemory = memoryBean.getHeapMemoryUsage().getMax() / (1024 * 1024);

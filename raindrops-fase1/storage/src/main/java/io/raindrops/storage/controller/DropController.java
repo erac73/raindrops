@@ -4,6 +4,7 @@ import io.raindrops.storage.config.PeerConfig;
 import io.raindrops.storage.repository.DropRepository;
 import io.raindrops.storage.service.DropService;
 import io.raindrops.storage.service.RainMapService;
+import io.raindrops.storage.service.RefreshService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,9 +20,9 @@ import java.util.Map;
 /**
  * Controlador REST del nodo Storage.
  *
- * <p>Expone los endpoints HTTP para la gestión de drops, RainMaps y información
- * de nodos peer. Este controlador actúa como la API pública del nodo Storage
- * dentro del sistema distribuido RainDrops.</p>
+ * <p>Expone los endpoints HTTP para la gestion de drops, RainMaps, informacion
+ * de nodos peer y refresh proactivo de shares. Este controlador actua como la
+ * API publica del nodo Storage dentro del sistema distribuido RainDrops.</p>
  *
  * <p>Endpoints disponibles:</p>
  * <ul>
@@ -31,6 +32,7 @@ import java.util.Map;
  *   <li>{@code POST /rainmaps/external} — almacena un RainMap enviado externamente.</li>
  *   <li>{@code GET /rainmaps/{rainMapId}} — obtiene un RainMap por su ID.</li>
  *   <li>{@code PUT /rainmaps/{rainMapId}/ciphertext} — almacena el cifrado adicional de un RainMap.</li>
+ *   <li>{@code POST /refresh/delta} — recibe deltas de Proactive Share Refresh.</li>
  *   <li>{@code GET /peers} — lista los nodos peer configurados.</li>
  *   <li>{@code GET /health} — endpoint de salud del servicio.</li>
  * </ul>
@@ -42,29 +44,33 @@ public class DropController {
     private final DropRepository dropRepository;
     private final RainMapService rainMapService;
     private final PeerConfig peerConfig;
+    private final RefreshService refreshService;
     private final String nodeId;
 
     /**
      * Constructor del DropController.
      *
-     * @param dropService    servicio de lógica de negocio para drops.
+     * @param dropService    servicio de logica de negocio para drops.
      * @param dropRepository repositorio JPA para la persistencia de drops.
-     * @param rainMapService servicio de gestión de RainMaps.
-     * @param peerConfig     configuración de nodos peer para la réplica.
+     * @param rainMapService servicio de gestion de RainMaps.
+     * @param peerConfig     configuracion de nodos peer para la replica.
+     * @param refreshService servicio de Proactive Share Refresh.
      */
     public DropController(DropService dropService, DropRepository dropRepository,
-                          RainMapService rainMapService, PeerConfig peerConfig) {
+                          RainMapService rainMapService, PeerConfig peerConfig,
+                          RefreshService refreshService) {
         this.dropService = dropService;
         this.dropRepository = dropRepository;
         this.rainMapService = rainMapService;
         this.peerConfig = peerConfig;
         this.nodeId = peerConfig.getNodeId();
+        this.refreshService = refreshService;
     }
 
     /**
      * Almacena un drop en este nodo Storage.
      *
-     * @param body representación JSON del drop a almacenar.
+     * @param body representacion JSON del drop a almacenar.
      * @return respuesta HTTP con el ID del drop almacenado y el ID del nodo.
      */
     @PostMapping("/drops")
@@ -93,7 +99,7 @@ public class DropController {
      *
      * @param body mapa con los campos {@code drops} (lista de JSON), {@code nodeUrls},
      *             {@code masterKeyHex} y {@code k}.
-     * @return respuesta HTTP con el ID del RainMap, payload cifrado y parámetros n/k.
+     * @return respuesta HTTP con el ID del RainMap, payload cifrado y parametros n/k.
      */
     @PostMapping("/rainmaps")
     public ResponseEntity<Map<String, Object>> buildAndStoreRainMap(@RequestBody Map<String, Object> body) {
@@ -165,6 +171,29 @@ public class DropController {
         String ciphertextHex = (String) body.get("ciphertextHex");
         rainMapService.storeCiphertext(rainMapId, ciphertextHex);
         return ResponseEntity.ok(Map.of("rainMapId", rainMapId));
+    }
+
+    /**
+     * Recibe deltas de Proactive Share Refresh desde otro nodo.
+     *
+     * <p>Endpoint invocado por los nodos peer durante el refresh periodico.
+     * Cada delta contiene la posicion x del share y el valor a sumar (mod p)
+     * para actualizar el share local.</p>
+     *
+     * @param body mapa JSON con {@code fromNodeId} y {@code dadas} (lista de deltas).
+     * @return respuesta HTTP 200 con confirmacion.
+     */
+    @SuppressWarnings("unchecked")
+    @PostMapping("/refresh/delta")
+    public ResponseEntity<Map<String, String>> receiveRefreshDelta(@RequestBody Map<String, Object> body) {
+        String fromNodeId = (String) body.get("fromNodeId");
+        List<Map<String, Object>> deltas = (List<Map<String, Object>>) body.get("deltas");
+        refreshService.receiveDeltas(fromNodeId, deltas);
+        return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "nodeId", nodeId,
+                "deltasApplied", String.valueOf(deltas.size())
+        ));
     }
 
     /**

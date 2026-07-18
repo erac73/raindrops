@@ -30,6 +30,23 @@ public final class RainDropsCore {
     //  DROP — SSS + VSS commitments
     // ════════════════════════════════════════════════════════════════════
 
+    /**
+     * Divide los datos en N drops utilizando Shamir Secret Sharing con
+     * verificabilidad de Feldman VSS.
+     *
+     * <p>Si los datos superan 65 bytes, se cifran con AES-256-GCM (modo hibrido)
+     * y solo la clave AES se fragmenta via SSS. Si no, los datos se usan
+     * directamente como secreto (modo directo).</p>
+     *
+     * @param data     datos originales a proteger (no nulos ni vacios).
+     * @param n        numero total de shares a generar (debe ser >= k y <= 255).
+     * @param k        umbral minimo de shares para reconstruir (debe ser >= 2).
+     * @param ttlDays  tiempo de vida de los drops en dias (debe ser >= 1).
+     * @return resultado que contiene los drops generados, la clave maestra,
+     *         el ciphertext (si aplica), los parametros n/k y los commitments VSS.
+     * @throws IllegalArgumentException si data es nula/vacia, ttlDays < 1,
+     *         o n/k fuera de rango.
+     */
     public static RainResult drop(byte[] data, int n, int k, int ttlDays) {
         if (data == null || data.length == 0) {
             throw new IllegalArgumentException("Los datos no pueden ser nulos o vacios.");
@@ -83,6 +100,23 @@ public final class RainDropsCore {
     //  RECONSTRUCT — VSS verification + SSS combine
     // ════════════════════════════════════════════════════════════════════
 
+    /**
+     * Reconstruye los datos originales a partir de drops validados con VSS.
+     *
+     * <p>Verifica la integridad HMAC de cada drop, comprueba la consistencia
+     * matematica con los commitments de Feldman VSS (si se proporcionan),
+     * y finalmente interpola el secreto via Lagrange sobre GF(p).</p>
+     *
+     * @param drops       lista de drops a utilizar para la reconstruccion (debe contener >= k drops validos).
+     * @param masterKey   clave maestra para verificar la integridad HMAC de cada drop.
+     * @param ciphertext  cifrado adicional para modo hibrido (null si es modo directo).
+     * @param k           umbral minimo de shares requeridos.
+     * @param directMode  {@code true} si los datos se usaron directamente sin cifrado hibrido.
+     * @param commitments lista de commitments de Feldman VSS para verificacion (puede ser null).
+     * @return datos originales reconstruidos.
+     * @throws QuorumException     si hay menos de k drops validos.
+     * @throws IllegalArgumentException si falta ciphertext en modo hibrido.
+     */
     public static byte[] reconstruct(List<Drop> drops, byte[] masterKey,
                                      byte[] ciphertext, int k, boolean directMode,
                                      List<BigInteger> commitments) {
@@ -130,6 +164,20 @@ public final class RainDropsCore {
         return result;
     }
 
+    /**
+     * Reconstruye los datos originales sin verificacion VSS (compatibilidad).
+     *
+     * <p>Equivalente a llamar a {@link #reconstruct(List, byte[], byte[], int, boolean, List)}
+     * con {@code commitments = null}.</p>
+     *
+     * @param drops       lista de drops a utilizar para la reconstruccion.
+     * @param masterKey   clave maestra para verificar la integridad HMAC.
+     * @param ciphertext  cifrado adicional para modo hibrido (null si es directo).
+     * @param k           umbral minimo de shares requeridos.
+     * @param directMode  {@code true} si los datos se usaron directamente.
+     * @return datos originales reconstruidos.
+     * @throws QuorumException     si hay menos de k drops validos.
+     */
     public static byte[] reconstruct(List<Drop> drops, byte[] masterKey,
                                      byte[] ciphertext, int k, boolean directMode) {
         return reconstruct(drops, masterKey, ciphertext, k, directMode, null);
@@ -139,6 +187,13 @@ public final class RainDropsCore {
     //  TIPOS DE RETORNO
     // ════════════════════════════════════════════════════════════════════
 
+    /**
+     * Resultado de la operacion DROP que contiene los fragments generados
+     * y toda la informacion necesaria para la reconstruccion.
+     *
+     * <p>Inmutabilidad: todos los campos se copian defensivamente en el constructor
+     * y los getters de arrays/clones retornan copias para prevenir mutaciones externas.</p>
+     */
     public static final class RainResult {
         private final List<Drop> drops;
         private final byte[]     masterKey;
@@ -160,13 +215,21 @@ public final class RainDropsCore {
             this.commitments = commitments != null ? List.copyOf(commitments) : null;
         }
 
+        /** @return lista inmutable de drops generados. */
         public List<Drop> getDrops()              { return drops; }
+        /** @return clone de la clave maestra de 32 bytes. */
         public byte[]     getMasterKey()          { return masterKey.clone(); }
+        /** @return clone del ciphertext (null si modo directo). */
         public byte[]     getCiphertext()         { return ciphertext != null ? ciphertext.clone() : null; }
+        /** @return numero total de shares generados. */
         public int        getN()                  { return n; }
+        /** @return umbral minimo de shares para reconstruccion. */
         public int        getK()                  { return k; }
+        /** @return {@code true} si se usaron datos directos sin cifrado hibrido. */
         public boolean    isDirectMode()          { return directMode; }
+        /** @return lista inmutable de commitments de Feldman VSS, o null si no aplica. */
         public List<BigInteger> getCommitments()  { return commitments; }
+        /** @return {@code true} si la lista de commitments no es nula ni esta vacia. */
         public boolean    hasCommitments()        { return commitments != null && !commitments.isEmpty(); }
 
         @Override
@@ -178,6 +241,13 @@ public final class RainDropsCore {
         }
     }
 
+    /**
+     * Excepcion lanzada cuando no se dispone del quorum minimo de drops
+     * validos para reconstruir el secreto.
+     *
+     * <p>Extiende {@link RuntimeException} para que no sea obligatorio
+     * capturarla en cada punto de llamada.</p>
+     */
     public static class QuorumException extends RuntimeException {
         public QuorumException(String message) { super(message); }
     }

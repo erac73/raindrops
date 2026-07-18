@@ -155,6 +155,32 @@ public final class ShamirSSS {
     }
 
     // =================================================================
+    //  PROACTIVE REFRESH
+    // =================================================================
+
+    /**
+     * Genera un polinomio aleatorio de grado K-1 con termino constante igual a 0.
+     *
+     * <p>Usado en Proactive Share Refresh: cada nodo genera un polinomio r_i(x)
+     * y calcula deltas = r_i(j) para repartir entre los nodos. Como r_i(0) = 0,
+     * la suma de deltas preserva el secreto original.</p>
+     *
+     * @param k grado del polinomio + 1 (numero de coeficientes)
+     * @return array de K BigInteger donde coefficients[0] = 0
+     */
+    public static BigInteger[] generateRefreshPolynomial(int k) {
+        if (k < 2) {
+            throw new IllegalArgumentException("K debe ser al menos 2.");
+        }
+        BigInteger[] coefficients = new BigInteger[k];
+        coefficients[0] = BigInteger.ZERO;
+        for (int i = 1; i < k; i++) {
+            coefficients[i] = randomFieldElement();
+        }
+        return coefficients;
+    }
+
+    // =================================================================
     //  HELPERS PRIVADOS
     // =================================================================
 
@@ -174,6 +200,14 @@ public final class ShamirSSS {
         BigInteger result = BigInteger.ZERO;
         for (int i = coefficients.length - 1; i >= 0; i--) {
             result = result.multiply(x).add(coefficients[i]);
+        }
+        return result;
+    }
+
+    public static BigInteger evaluatePolynomial(BigInteger[] coefficients, BigInteger x, BigInteger prime) {
+        BigInteger result = BigInteger.ZERO;
+        for (int i = coefficients.length - 1; i >= 0; i--) {
+            result = result.multiply(x).add(coefficients[i]).mod(prime);
         }
         return result;
     }

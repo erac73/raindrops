@@ -40,7 +40,7 @@ public class ReplicationService {
     private final PeerConfig peerConfig;
     private final RestClient restClient;
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private final ObjectMapper mapper;
     private final String apiKey;
 
     /**
@@ -48,15 +48,18 @@ public class ReplicationService {
      *
      * @param peerConfig       configuración de nodos peer con sus URLs.
      * @param restClientBuilder builder para crear el RestClient HTTP.
+     * @param mapper           ObjectMapper compartido para serialización JSON.
      * @param apiKey           clave de API para autenticación con los peers (puede estar vacía).
      */
     public ReplicationService(PeerConfig peerConfig, RestClient.Builder restClientBuilder,
+                              ObjectMapper mapper,
                               @Value("${API_KEY:}") String apiKey) {
         this.peerConfig = peerConfig;
         org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(5000);
         factory.setReadTimeout(5000);
         this.restClient = restClientBuilder.requestFactory(factory).build();
+        this.mapper = mapper;
         this.apiKey = apiKey;
     }
 
@@ -125,7 +128,7 @@ public class ReplicationService {
                     var req = restClient.post()
                         .uri(url)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(MAPPER.writeValueAsString(body));
+                        .body(mapper.writeValueAsString(body));
                     addAuth(req);
                     req.retrieve().toBodilessEntity();
                     log.info("Replicated RainMap {} to {}", rainMapId, url);
